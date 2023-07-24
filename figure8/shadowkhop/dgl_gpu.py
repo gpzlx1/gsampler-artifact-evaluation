@@ -50,12 +50,13 @@ def train(dataset, args):
         g.pin_memory_()
         train_nid = train_nid.cuda()
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     benchmark(args, g, train_nid, fanouts, n_epoch)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
     parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")

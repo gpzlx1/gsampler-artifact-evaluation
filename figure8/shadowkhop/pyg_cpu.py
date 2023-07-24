@@ -24,7 +24,7 @@ def train(args, dataset):
     static_memory = torch.cuda.memory_allocated()
     print("memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB")
     torch.cuda.reset_peak_memory_stats()
-    for epoch in range(args.epoch):
+    for epoch in range(args.num_epoch):
         torch.cuda.synchronize()
         start = time.time()
         for it, data in enumerate(tqdm(train_loader)):
@@ -43,9 +43,9 @@ def train(args, dataset):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="number of epoch")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")
     parser.add_argument("--batchsize", type=int, default=512, help="batch size for training")
-    parser.add_argument("--epoch", type=int, default=6, help="number of epoch")
     args = parser.parse_args()
     print(args)
 

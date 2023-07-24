@@ -7,6 +7,13 @@ from model import PyGSAGEModel
 import time
 import pandas as pd
 import numpy as np
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--num_epoch", type=int, default=100, help="numbers of epoch in training")
+args = parser.parse_args()
+print(args)
 
 
 dataset = PygNodePropPredDataset("ogbn-products", "/home/ubuntu/dataset")
@@ -109,8 +116,7 @@ epoch_time = []
 cur_time = []
 acc_list = []
 start = time.time()
-n_epochs = 1
-for epoch in range(n_epochs):
+for epoch in range(args.num_epoch):
     torch.cuda.synchronize()
     tic = time.time()
     loss, acc, train_sampling = train(epoch)

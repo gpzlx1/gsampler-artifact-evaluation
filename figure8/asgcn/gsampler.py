@@ -16,7 +16,7 @@ def sample_w_o_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
     blocks = []
     for fanout in fanouts:
         subg = graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, False)
-        p = subg._CAPI_sum(1, 2, gs._CSR)
+        p = subg._CAPI_sum(1, 2, gs._COO)
         p = p.sqrt()
         row_indices = torch.unique(subg._CAPI_get_coo_rows(False))
         if use_uva:
@@ -35,21 +35,13 @@ def sample_w_o_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
 
         selected, idx = torch.ops.gs_ops.list_sampling_with_probs(row_indices, q, fanout, False)
 
-        subg = subg._CAPI_slicing(selected, 1, gs._CSR, gs._COO, False)
+        subg = subg._CAPI_slicing(selected, 1, gs._COO, gs._COO, False)
         W_tilde = gs.ops.u_add_v(gs.Matrix(subg), h_u[idx], h_v, gs._COO)
         W_tilde = (F.relu(W_tilde) + 1) / selected.numel()
         W_tilde = gs.ops.e_div_u(gs.Matrix(subg), W_tilde, q[idx], gs._COO)
         subg._CAPI_set_data(W_tilde * subg._CAPI_get_data("default"))
 
-        (
-            unique_tensor,
-            num_row,
-            num_col,
-            format_tensor1,
-            format_tensor2,
-            e_ids,
-            format,
-        ) = subg._CAPI_relabel()
+        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
         seeds = unique_tensor
     input_nodes = seeds
     return input_nodes, output_nodes, blocks
@@ -61,7 +53,7 @@ def sample_w_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
     blocks = []
     for fanout in fanouts:
         subg = graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, True)
-        p = subg._CAPI_sum(1, 2, gs._CSR)
+        p = subg._CAPI_sum(1, 2, gs._COO)
         p = p.sqrt()
         row_indices = subg._CAPI_get_rows()
         num_pick = np.min([row_indices.numel(), fanout])
@@ -81,21 +73,13 @@ def sample_w_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
 
         selected = torch.multinomial(q, num_pick, replacement=False)
 
-        subg = subg._CAPI_slicing(selected, 1, gs._CSR, gs._COO, False)
+        subg = subg._CAPI_slicing(selected, 1, gs._COO, gs._COO, False)
         W_tilde = gs.ops.u_add_v(gs.Matrix(subg), h_u, h_v, gs._COO)
         W_tilde = (F.relu(W_tilde) + 1) / selected.numel()
         W_tilde = gs.ops.e_div_u(gs.Matrix(subg), W_tilde, q[selected], gs._COO)
         subg._CAPI_set_data(W_tilde * subg._CAPI_get_data("default"))
 
-        (
-            unique_tensor,
-            num_row,
-            num_col,
-            format_tensor1,
-            format_tensor2,
-            e_ids,
-            format,
-        ) = subg._CAPI_relabel()
+        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
         seeds = unique_tensor
     input_nodes = seeds
     return input_nodes, output_nodes, blocks
@@ -153,7 +137,7 @@ def train(dataset, args):
     m._graph._CAPI_set_data(weight)
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     if args.dataset != "ogbn-papers100M":
         benchmark(args, m, train_nid, fanouts, n_epoch, features, W, sample_w_o_relabel)
     else:
@@ -162,6 +146,7 @@ def train(dataset, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument(
         "--device",
         default="cuda",

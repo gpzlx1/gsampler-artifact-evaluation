@@ -182,7 +182,7 @@ def train(dataset, args):
         train_nid = train_nid.cuda()
         W1, W2, Wa = W1.cuda(), W2.cuda(), Wa.cuda()
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     if args.dataset == "livejournal" or args.dataset == "ogbn-products":
         benchmark(args, g, train_nid, fanouts, n_epoch, features, W1, W2, Wa, PASSSampler)
     else:
@@ -191,6 +191,7 @@ def train(dataset, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
     parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")
