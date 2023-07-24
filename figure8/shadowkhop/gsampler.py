@@ -87,12 +87,13 @@ def train(dataset, args):
     m._graph._CAPI_load_csc(csc_indptr, csc_indices)
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     benchmark(args, m, train_nid, fanouts, n_epoch, sample_w_o_relabel)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
     parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")

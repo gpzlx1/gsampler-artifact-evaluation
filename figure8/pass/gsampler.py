@@ -13,7 +13,7 @@ def sample_w_o_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_
     blocks = []
     output_nodes = seeds
     for fanout in fanouts:
-        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, False)
+        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._CSC + gs._COO, False)
         att3 = subg._CAPI_normalize(0, gs._CSC)._CAPI_get_data("default").unsqueeze(1)
         neighbors = torch.unique(subg._CAPI_get_coo_rows(False))
         subA = gs.Matrix(subg)
@@ -38,7 +38,7 @@ def sample_w_o_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_
         att = F.relu(att @ F.softmax(sample_a, dim=0))
         att = att + 10e-10 * torch.ones_like(att)
         subA._graph._CAPI_set_data(att)
-        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._COO)
+        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._CSC)
         unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
         seeds = unique_tensor
     input_nodes = seeds
@@ -49,7 +49,7 @@ def sample_w_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_a,
     blocks = []
     output_nodes = seeds
     for fanout in fanouts:
-        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, True)
+        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._CSC, True)
         rows = subg._CAPI_get_rows()
         subA = gs.Matrix(subg)
         if use_uva:
@@ -68,7 +68,7 @@ def sample_w_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_a,
         att = F.relu(att @ F.softmax(sample_a, dim=0))
         att = att + 10e-10 * torch.ones_like(att)
         subA._graph._CAPI_set_data(att)
-        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._COO)
+        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._CSC)
         unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
         seeds = unique_tensor
     input_nodes = seeds
@@ -125,7 +125,7 @@ def train(dataset, args):
     m._graph._CAPI_load_csc(csc_indptr, csc_indices)
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     if args.dataset == "livejournal" or args.dataset == "ogbn-products":
         benchmark(args, m, train_nid, fanouts, n_epoch, features, W1, W2, Wa, sample_w_o_relabel)
     else:
@@ -134,6 +134,7 @@ def train(dataset, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
     parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")

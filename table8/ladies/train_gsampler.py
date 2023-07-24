@@ -17,33 +17,25 @@ def sample_w_o_relabel(P, seeds, seeds_ptr, fanouts):
     encoding_size = P._CAPI_get_num_rows()
     for fanout in fanouts:
         # (batchID * num_nodes) * nodeID
-        subg, _ = P._CAPI_batch_slicing(
-            seeds, seeds_ptr, 0, gs._CSC, gs._COO, False, True
-        )
-        probs = subg._CAPI_sum(1, 2, gs._CSR)
+        subg, _ = P._CAPI_batch_slicing(seeds, seeds_ptr, 0, gs._CSC, gs._COO, False, True)
+        probs = subg._CAPI_sum(1, 2, gs._COO)
 
         neighbors = torch.unique(subg._CAPI_get_coo_rows(False))
         # int(nodeID / num_nodes)
         node_probs = probs[neighbors]
-        neighbors_ptr, _ = torch.ops.gs_ops.GetBatchOffsets(
-            neighbors, num_batches, encoding_size
-        )
-        idx, _ = torch.ops.gs_ops.batch_list_sampling_with_probs(
-            node_probs, fanout, False, neighbors_ptr
-        )
+        neighbors_ptr, _ = torch.ops.gs_ops.GetBatchOffsets(neighbors, num_batches, encoding_size)
+        idx, _ = torch.ops.gs_ops.batch_list_sampling_with_probs(node_probs, fanout, False, neighbors_ptr)
         selected = neighbors[idx]
 
         nodes = torch.cat((subg._CAPI_get_cols(), selected)).unique()
-        subg = subg._CAPI_slicing(nodes, 1, gs._CSR, gs._COO, False)  # Row Slicing
+        subg = subg._CAPI_slicing(nodes, 1, gs._COO, gs._COO, False)  # Row Slicing
         subg = subg._CAPI_divide(probs[nodes], 1, gs._COO)
-        _sum = subg._CAPI_sum(0, 1, gs._CSC)
+        _sum = subg._CAPI_sum(0, 1, gs._COO)
         subg = subg._CAPI_divide(_sum, 0, gs._COO)
 
         encoded_coo_row = subg._CAPI_get_rows()[subg._CAPI_get_coo_rows(False)]
         # nodeID - int(nodeID / num_nodes) * num_nodes
-        coo_ptr, coo_row = torch.ops.gs_ops.GetBatchOffsets(
-            encoded_coo_row, num_batches, encoding_size
-        )
+        coo_ptr, coo_row = torch.ops.gs_ops.GetBatchOffsets(encoded_coo_row, num_batches, encoding_size)
         coo_col = seeds[subg._CAPI_get_coo_cols(False)]
         (
             unique_tensor,
@@ -51,16 +43,12 @@ def sample_w_o_relabel(P, seeds, seeds_ptr, fanouts):
             sub_coo_row,
             sub_coo_col,
             sub_coo_ptr,
-        ) = torch.ops.gs_ops.BatchCOORelabel(
-            seeds, seeds_ptr, coo_col, coo_row, coo_ptr
-        )
+        ) = torch.ops.gs_ops.BatchCOORelabel(seeds, seeds_ptr, coo_col, coo_row, coo_ptr)
         seedst = torch.ops.gs_ops.SplitByOffset(seeds, seeds_ptr)
         unit = torch.ops.gs_ops.SplitByOffset(unique_tensor, unique_tensor_ptr)
         colt = torch.ops.gs_ops.SplitByOffset(sub_coo_col, sub_coo_ptr)
         rowt = torch.ops.gs_ops.SplitByOffset(sub_coo_row, sub_coo_ptr)
-        edata = torch.ops.gs_ops.SplitByOffset(
-            subg._CAPI_get_data("default"), sub_coo_ptr
-        )
+        edata = torch.ops.gs_ops.SplitByOffset(subg._CAPI_get_data("default"), sub_coo_ptr)
         seedsts.append(seedst)
         units.append(unit)
         colts.append(colt)
@@ -101,26 +89,17 @@ def train(dataset, args):
     batch_size = 12800
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)
-    orig_seeds_ptr = (
-        torch.arange(num_batches + 1, dtype=torch.int64, device="cuda")
-        * small_batch_size
-    )
+    orig_seeds_ptr = torch.arange(num_batches + 1, dtype=torch.int64, device="cuda") * small_batch_size
     print(batch_size, small_batch_size, fanouts)
 
-    train_seedloader = SeedGenerator(
-        train_nid, batch_size=batch_size, shuffle=True, drop_last=False
-    )
-    val_seedloader = SeedGenerator(
-        val_nid, batch_size=batch_size, shuffle=True, drop_last=False
-    )
+    train_seedloader = SeedGenerator(train_nid, batch_size=batch_size, shuffle=True, drop_last=False)
+    val_seedloader = SeedGenerator(val_nid, batch_size=batch_size, shuffle=True, drop_last=False)
     model = SAGEModel(features.shape[1], 256, n_classes, len(fanouts)).to("cuda")
     opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=5e-4)
 
     torch.cuda.synchronize()
     static_memory = torch.cuda.memory_allocated()
-    print(
-        "memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB"
-    )
+    print("memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB")
 
     epoch_time = []
     cur_time = []
@@ -135,17 +114,10 @@ def train(dataset, args):
         for it, seeds in enumerate(tqdm.tqdm(train_seedloader)):
             seeds_ptr = orig_seeds_ptr
             if it == len(train_seedloader) - 1:
-                num_batches = int(
-                    (seeds.numel() + small_batch_size - 1) / small_batch_size
-                )
-                seeds_ptr = (
-                    torch.arange(num_batches + 1, dtype=torch.int64, device="cuda")
-                    * small_batch_size
-                )
+                num_batches = int((seeds.numel() + small_batch_size - 1) / small_batch_size)
+                seeds_ptr = torch.arange(num_batches + 1, dtype=torch.int64, device="cuda") * small_batch_size
                 seeds_ptr[-1] = seeds.numel()
-            seeds, units, colts, rowts, edatats = sample_w_o_relabel(
-                A, seeds, seeds_ptr, fanouts
-            )
+            seeds, units, colts, rowts, edatats = sample_w_o_relabel(A, seeds, seeds_ptr, fanouts)
 
             for rank in range(num_batches):
                 batch_seeds = seeds[0][rank]
@@ -158,17 +130,13 @@ def train(dataset, args):
                         rowts[layer][rank],
                         edatats[layer][rank],
                     )
-                    block = create_block_from_coo(
-                        row, col, num_src=unique.numel(), num_dst=col_seed.numel()
-                    )
+                    block = create_block_from_coo(row, col, num_src=unique.numel(), num_dst=col_seed.numel())
                     block.edata["w"] = edata
                     block.srcdata["_ID"] = unique
                     blocks.insert(0, block)
                 blocks = [block.to("cuda") for block in blocks]
                 if use_uva:
-                    batch_inputs = gather_pinned_tensor_rows(
-                        features, blocks[0].srcdata["_ID"]
-                    )
+                    batch_inputs = gather_pinned_tensor_rows(features, blocks[0].srcdata["_ID"])
                     batch_labels = gather_pinned_tensor_rows(labels, batch_seeds)
                 else:
                     batch_inputs = features[blocks[0].srcdata["_ID"]].to("cuda")
@@ -191,17 +159,10 @@ def train(dataset, args):
             for it, seeds in enumerate(tqdm.tqdm(val_seedloader)):
                 seeds_ptr = orig_seeds_ptr
                 if it == len(val_seedloader) - 1:
-                    num_batches = int(
-                        (seeds.numel() + small_batch_size - 1) / small_batch_size
-                    )
-                    seeds_ptr = (
-                        torch.arange(num_batches + 1, dtype=torch.int64, device="cuda")
-                        * small_batch_size
-                    )
+                    num_batches = int((seeds.numel() + small_batch_size - 1) / small_batch_size)
+                    seeds_ptr = torch.arange(num_batches + 1, dtype=torch.int64, device="cuda") * small_batch_size
                     seeds_ptr[-1] = seeds.numel()
-                seeds, units, colts, rowts, edatats = sample_w_o_relabel(
-                    A, seeds, seeds_ptr, fanouts
-                )
+                seeds, units, colts, rowts, edatats = sample_w_o_relabel(A, seeds, seeds_ptr, fanouts)
 
                 for rank in range(num_batches):
                     batch_seeds = seeds[0][rank]
@@ -214,17 +175,13 @@ def train(dataset, args):
                             rowts[layer][rank],
                             edatats[layer][rank],
                         )
-                        block = create_block_from_coo(
-                            row, col, num_src=unique.numel(), num_dst=col_seed.numel()
-                        )
+                        block = create_block_from_coo(row, col, num_src=unique.numel(), num_dst=col_seed.numel())
                         block.edata["w"] = edata
                         block.srcdata["_ID"] = unique
                         blocks.insert(0, block)
                     blocks = [block.to("cuda") for block in blocks]
                     if use_uva:
-                        batch_inputs = gather_pinned_tensor_rows(
-                            features, blocks[0].srcdata["_ID"]
-                        )
+                        batch_inputs = gather_pinned_tensor_rows(features, blocks[0].srcdata["_ID"])
                         batch_labels = gather_pinned_tensor_rows(labels, batch_seeds)
                     else:
                         batch_inputs = features[blocks[0].srcdata["_ID"]].to("cuda")
@@ -245,11 +202,7 @@ def train(dataset, args):
         cur_time.append(end - start)
         epoch_time.append(end - tic)
 
-        print(
-            "Epoch {:05d} | Val Acc {:.4f} | E2E Time {:.4f} s | Accumulated Time {:.4f} s".format(
-                epoch, acc, epoch_time[-1], cur_time[-1]
-            )
-        )
+        print("Epoch {:05d} | Val Acc {:.4f} | E2E Time {:.4f} s | Accumulated Time {:.4f} s".format(epoch, acc, epoch_time[-1], cur_time[-1]))
 
     torch.cuda.synchronize()
     total_time = time.time() - start
@@ -263,9 +216,7 @@ def train(dataset, args):
     s4 = pd.Series([static_memory], name="static mem/GB")
     df = pd.concat([s5, s1, s2, s3, s4], axis=1)
     df.to_csv(
-        "outputs/data/ladies_gsampler_{}_{}.csv".format(
-            args.dataset, time.ctime().replace(" ", "_")
-        ),
+        "outputs/data/ladies_gsampler_{}_{}.csv".format(args.dataset, time.ctime().replace(" ", "_")),
         index=False,
     )
 
@@ -290,15 +241,9 @@ if __name__ == "__main__":
         choices=["reddit", "products", "papers100m"],
         help="which dataset to load for training",
     )
-    parser.add_argument(
-        "--batchsize", type=int, default=512, help="batch size for training"
-    )
-    parser.add_argument(
-        "--samples", default="4000,4000,4000", help="sample size for each layer"
-    )
-    parser.add_argument(
-        "--num-epoch", type=int, default=100, help="numbers of epoch in training"
-    )
+    parser.add_argument("--batchsize", type=int, default=512, help="batch size for training")
+    parser.add_argument("--samples", default="4000,4000,4000", help="sample size for each layer")
+    parser.add_argument("--num_epoch", type=int, default=100, help="numbers of epoch in training")
     args = parser.parse_args()
     print(args)
 

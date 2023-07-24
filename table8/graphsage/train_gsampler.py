@@ -224,7 +224,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--batchsize", type=int, default=512, help="batch size for training")
     parser.add_argument("--samples", default="25,10", help="sample size for each layer")
-    parser.add_argument("--num-epoch", type=int, default=100, help="numbers of epoch in training")
+    parser.add_argument("--num_epoch", type=int, default=100, help="numbers of epoch in training")
     args = parser.parse_args()
     print(args)
 

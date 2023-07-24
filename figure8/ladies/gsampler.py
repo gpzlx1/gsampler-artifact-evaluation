@@ -18,7 +18,7 @@ def sample_w_o_relabel(P: gs.Matrix, fanouts, seeds, seeds_ptr):
     for fanout in fanouts:
         # (batchID * num_nodes) * nodeID
         subg, _ = graph._CAPI_batch_slicing(seeds, seeds_ptr, 0, gs._CSC, gs._COO, False, True)
-        probs = subg._CAPI_sum(1, 2, gs._CSR)
+        probs = subg._CAPI_sum(1, 2, gs._COO)
 
         neighbors = torch.unique(subg._CAPI_get_coo_rows(False))
         # int(nodeID / num_nodes)
@@ -28,9 +28,9 @@ def sample_w_o_relabel(P: gs.Matrix, fanouts, seeds, seeds_ptr):
         selected = neighbors[idx]
 
         nodes = torch.cat((subg._CAPI_get_cols(), selected)).unique()
-        subg = subg._CAPI_slicing(nodes, 1, gs._CSR, gs._COO, False)  # Row Slicing
+        subg = subg._CAPI_slicing(nodes, 1, gs._COO, gs._COO, False)  # Row Slicing
         subg = subg._CAPI_divide(probs[nodes], 1, gs._COO)
-        _sum = subg._CAPI_sum(0, 1, gs._CSC)
+        _sum = subg._CAPI_sum(0, 1, gs._COO)
         subg = subg._CAPI_divide(_sum, 0, gs._COO)
 
         encoded_coo_row = subg._CAPI_get_rows()[subg._CAPI_get_coo_rows(False)]
@@ -59,7 +59,7 @@ def sample_w_relabel(P: gs.Matrix, fanouts, seeds, seeds_ptr):
     encoding_size = graph._CAPI_get_num_rows()
     for fanout in fanouts:
         subg, _ = graph._CAPI_batch_slicing(seeds, seeds_ptr, 0, gs._CSC, gs._COO, True, True)
-        probs = subg._CAPI_sum(1, 2, gs._CSR)
+        probs = subg._CAPI_sum(1, 2, gs._COO)
         num_pick = np.min([probs.numel(), fanout])
 
         # int(nodeID / num_nodes)
@@ -68,9 +68,9 @@ def sample_w_relabel(P: gs.Matrix, fanouts, seeds, seeds_ptr):
 
         relabel_seeds_nodes = torch.ops.gs_ops.index_search(subg._CAPI_get_rows(), subg._CAPI_get_cols())
         nodes = torch.cat((relabel_seeds_nodes, selected)).unique()
-        subg = subg._CAPI_slicing(nodes, 1, gs._CSR, gs._COO, False)  # Row Slicing
+        subg = subg._CAPI_slicing(nodes, 1, gs._COO, gs._COO, False)  # Row Slicing
         subg = subg._CAPI_divide(probs[nodes], 1, gs._COO)
-        _sum = subg._CAPI_sum(0, 1, gs._CSC)
+        _sum = subg._CAPI_sum(0, 1, gs._COO)
         subg = subg._CAPI_divide(_sum, 0, gs._COO)
 
         encoded_coo_row = subg._CAPI_get_rows()[subg._CAPI_get_coo_rows(False)]
@@ -152,7 +152,7 @@ def train(dataset, args):
     m._graph._CAPI_set_data(weight)
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
-    n_epoch = 6
+    n_epoch = args.num_epoch
     if args.dataset in ("livejournal", "ogbn-products"):
         benchmark(args, m, train_nid, fanouts, n_epoch, sample_w_o_relabel)
     else:
@@ -161,6 +161,7 @@ def train(dataset, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
     parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
     parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")

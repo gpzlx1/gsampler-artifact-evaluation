@@ -1,4 +1,4 @@
 mkdir -p outputs/data
 
-python train_dgl.py > outputs/dgl.txt
-python train_gsampler.py > outputs/gsampler.txt
+python train_dgl.py --num_epoch=$training_epochs > outputs/dgl.txt
+python train_gsampler.py --num_epoch=$training_epochs > outputs/gsampler.txt

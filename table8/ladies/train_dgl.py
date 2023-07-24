@@ -97,9 +97,7 @@ def train(dataset, args):
         tic = time.time()
         model.train()
         sampling_start = time.time()
-        for it, (input_nodes, output_nodes, blocks) in enumerate(
-            tqdm(train_dataloader)
-        ):
+        for it, (input_nodes, output_nodes, blocks) in enumerate(tqdm(train_dataloader)):
             input_nodes, output_nodes = input_nodes.cuda(), output_nodes.cuda()
             blocks = [block.to("cuda") for block in blocks]
             sampling_time += time.time() - sampling_start
@@ -122,9 +120,7 @@ def train(dataset, args):
         val_labels = []
         with torch.no_grad():
             sampling_start = time.time()
-            for it, (input_nodes, output_nodes, blocks) in enumerate(
-                tqdm(val_dataloader)
-            ):
+            for it, (input_nodes, output_nodes, blocks) in enumerate(tqdm(val_dataloader)):
                 input_nodes, output_nodes = input_nodes.cuda(), output_nodes.cuda()
                 blocks = [block.to("cuda") for block in blocks]
                 sampling_time += time.time() - sampling_start
@@ -164,9 +160,7 @@ def train(dataset, args):
     s4 = pd.Series([static_memory], name="static mem/GB")
     df = pd.concat([s5, s1, s2, s3, s4], axis=1)
     df.to_csv(
-        "outputs/data/ladies_dgl_{}_{}.csv".format(
-            args.dataset, time.ctime().replace(" ", "_")
-        ),
+        "outputs/data/ladies_dgl_{}_{}.csv".format(args.dataset, time.ctime().replace(" ", "_")),
         index=False,
     )
 
@@ -185,18 +179,14 @@ if __name__ == "__main__":
         choices=["reddit", "products", "papers100m"],
         help="which dataset to load for training",
     )
-    parser.add_argument(
-        "--batchsize", type=int, default=512, help="batch size for training"
-    )
+    parser.add_argument("--batchsize", type=int, default=512, help="batch size for training")
     parser.add_argument(
         "--num-workers",
         type=int,
         default=0,
         help="numbers of workers for sampling, must be 0 when gpu or uva is used",
     )
-    parser.add_argument(
-        "--num-epoch", type=int, default=1, help="numbers of epoch in training"
-    )
+    parser.add_argument("--num_epoch", type=int, default=100, help="numbers of epoch in training")
     args = parser.parse_args()
     print(args)
     if args.dataset == "reddit":
