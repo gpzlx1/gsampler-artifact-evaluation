@@ -1,0 +1,7 @@
+[submodule "figure7/skywalker"]
+	path = figure7/skywalker
+	url = https://github.com/DanielMao1/skywalker-gsampler-baseline.git
+[submodule "figure7/gunrock"]
+	path = figure7/gunrock
+	url = https://github.com/DanielMao1/gunrock-gsampler-baseline.git
+	branch = gsampler-baseline
