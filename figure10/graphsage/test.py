@@ -97,7 +97,7 @@ def train(dataset, args):
     n_epoch = args.num_epoch
     benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, plain)
     benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, fusion)
-    benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batch)
+    # benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batch)
     benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batch_fusion)
 
 

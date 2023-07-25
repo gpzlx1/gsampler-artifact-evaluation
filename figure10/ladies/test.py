@@ -100,17 +100,16 @@ def train(dataset, args):
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
     n_epoch = args.num_epoch
-    if args.dataset == 'ogbn-products':
+    if args.dataset == "ogbn-products":
         benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_fusion)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_selection)
-    elif args.dataset == 'ogbn-papers100M':
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion_selection)
+        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_fusion_selection)
+    elif args.dataset == "ogbn-papers100M":
         benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_fusion)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_selection)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_relabel_fusion_selection)
+        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_fusion_selection)
     else:
         raise NotImplementedError
 
