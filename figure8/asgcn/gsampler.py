@@ -7,7 +7,7 @@ import numpy as np
 import time
 import tqdm
 import argparse
-import dgl
+import csv
 
 
 def sample_w_o_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
@@ -107,6 +107,12 @@ def benchmark(args, graph, nid, fanouts, n_epoch, features, W, sampler):
 
         print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
 
+    with open("outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        writer.writerow(log_info)
+    
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))

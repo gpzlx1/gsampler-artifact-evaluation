@@ -9,6 +9,7 @@ import tqdm
 import argparse
 import pandas as pd
 from model import *
+import csv
 
 
 def sample_w_o_relabel(P, seeds, seeds_ptr, fanouts):
@@ -219,6 +220,12 @@ def train(dataset, args):
         "outputs/data/ladies_gsampler_{}_{}.csv".format(args.dataset, time.ctime().replace(" ", "_")),
         index=False,
     )
+    
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, total time, acc
+        log_info = ["gSampler", "LADIES", f"Time: {round(total_time, 2)} s", f"Accuracy: {round(np.max(acc_list) * 100, 2)}"]
+        writer.writerow(log_info)
 
 
 if __name__ == "__main__":

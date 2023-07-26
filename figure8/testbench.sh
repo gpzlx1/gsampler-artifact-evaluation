@@ -1,3 +1,5 @@
+mkdir -p outputs
+
 cd ladies/
 bash testbench.sh
 
@@ -11,3 +13,5 @@ cd ../shadowkhop/
 bash testbench.sh
 
 cd ..
+
+python plot.py
