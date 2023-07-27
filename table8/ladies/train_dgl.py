@@ -9,6 +9,7 @@ import time
 import pandas as pd
 from gs.utils.load_graph import *
 from model import *
+import csv
 
 
 class LADIESSampler(dgl.dataloading.BlockSampler):
@@ -163,6 +164,12 @@ def train(dataset, args):
         "outputs/data/ladies_dgl_{}_{}.csv".format(args.dataset, time.ctime().replace(" ", "_")),
         index=False,
     )
+
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, total time, acc
+        log_info = ["DGL", "LADIES", f"Time: {round(total_time, 2)} s", f"Accuracy: {round(np.max(acc_list) * 100, 2)}"]
+        writer.writerow(log_info)
 
 
 if __name__ == "__main__":

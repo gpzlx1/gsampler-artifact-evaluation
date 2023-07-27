@@ -8,8 +8,13 @@ import torch
 from dgl.data import RedditDataset
 from ogb.nodeproppred import DglNodePropPredDataset
 import scipy.sparse as sp
+<<<<<<< HEAD
 # from cugraph.sampling.random_walks import uniform_random_walks
 
+=======
+import csv 
+import argparse
+>>>>>>> 88032ccd267c2bc12b1636703623dd3b7fbedd47
 
 def load_ogb(name):
     data = DglNodePropPredDataset(name=name,root="/home/ubuntu/dataset/")
@@ -69,10 +74,30 @@ def time_randomwalk(graph, seeds, batchsize, walk_length, batchnum):
             )
         )
     print("avg epoch time:", np.mean(sample_list[1:]) * 1000)
+<<<<<<< HEAD
+=======
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["cugraph", args.dataset, np.mean(sample_list[1:]), "rw"]
+        writer.writerow(log_info)
+        print(f"result writen to ../outputs/result.csv")
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--dataset",
+    default="livejournal",
+    choices=["producrs", "livejournal"],
+    help="which dataset to load for training",
+)
+args = parser.parse_args()
+if args.dataset=="livejournal":
+    dataset = load_livejournal()
+>>>>>>> 88032ccd267c2bc12b1636703623dd3b7fbedd47
 
-dataset = load_ogb("ogbn-products")
-# dataset = load_livejournal()
+else:
+    dataset = load_ogb("ogbn-products")
+
 dgl_graph = dataset[0]
 train_id = dataset[4]["train"]
 train_id = train_id.cpu().numpy()

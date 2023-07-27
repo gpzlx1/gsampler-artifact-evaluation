@@ -1,4 +1,5 @@
 mkdir -p outputs
+:> outputs/result.csv
 
 {
 python dgl_gpu.py --dataset=livejournal --num_epoch=$epochs

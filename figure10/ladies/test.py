@@ -8,6 +8,7 @@ import time
 import tqdm
 import argparse
 from sampler import *
+import csv
 
 
 def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
@@ -32,6 +33,12 @@ def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
         mem_list.append((torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024))
 
         print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
+
+    with open("outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        writer.writerow(log_info)
 
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
@@ -71,6 +78,12 @@ def benchmark_w_batching(args, matrix, nid, fanouts, n_epoch, sampler):
 
         print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
 
+    with open("outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        writer.writerow(log_info)
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -100,17 +113,16 @@ def train(dataset, args):
     print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
 
     n_epoch = args.num_epoch
-    if args.dataset == 'ogbn-products':
+    if args.dataset == "ogbn-products":
         benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_fusion)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_selection)
-    elif args.dataset == 'ogbn-papers100M':
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion_selection)
+        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_fusion_selection)
+    elif args.dataset == "ogbn-papers100M":
         benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_fusion)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_selection)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_relabel_fusion_selection)
+        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_fusion_selection)
     else:
         raise NotImplementedError
 
