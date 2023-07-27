@@ -9,6 +9,7 @@ import tqdm
 import argparse
 import pandas as pd
 from model import DGLSAGEModel
+import csv
 
 
 def compute_acc(pred, label):
@@ -200,6 +201,12 @@ def train(dataset, args):
     s4 = pd.Series([static_memory], name="static mem/GB")
     df = pd.concat([s5, s1, s2, s3, s4], axis=1)
     df.to_csv("outputs/data/graphsage_gsampler_{}_{}.csv".format(args.dataset, time.ctime().replace(" ", "_")), index=False)
+
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, total time, acc
+        log_info = ["gSampler", "GraphSAGE", f"Time: {round(total_time, 2)} s", f"Accuracy: {round(np.max(acc_list) * 100, 2)}"]
+        writer.writerow(log_info)
 
 
 if __name__ == "__main__":

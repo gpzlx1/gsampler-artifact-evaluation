@@ -7,10 +7,11 @@ from ogb.nodeproppred import PygNodePropPredDataset
 from tqdm import tqdm
 import argparse
 import time
+import csv
 
 
 def train(args, dataset):
-    # kwargs = {"batch_size": args.batchsize, "num_workers": 2, 'persistent_workers': True}
+    # kwargs = {"batch_size": args.batchsize, "num_workers": 2, "persistent_workers": True}
     kwargs = {"batch_size": args.batchsize}
 
     graph, train_idx = dataset
@@ -25,15 +26,24 @@ def train(args, dataset):
     print("memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB")
     torch.cuda.reset_peak_memory_stats()
     for epoch in range(args.num_epoch):
+        transfer_time = 0
         torch.cuda.synchronize()
         start = time.time()
         for it, data in enumerate(tqdm(train_loader)):
-            pass
+            tic = time.time()
+            data = data.to("cuda")
+            transfer_time += time.time() - tic
         torch.cuda.synchronize()
-        epoch_time.append(time.time() - start)
+        epoch_time.append(time.time() - start - transfer_time)
         mem_list.append((torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024))
 
         print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
+
+    with open("outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["PyG", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        writer.writerow(log_info)
 
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))

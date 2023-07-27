@@ -1,3 +1,6 @@
+mkdir -p outputs
+:> outputs/result.csv
+
 cd graphsage/
 bash testbench.sh
 
