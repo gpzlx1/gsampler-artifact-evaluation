@@ -70,7 +70,7 @@ def time_randomwalk(graph, seeds, batchsize, fanout, batchnum):
     with open("../outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
         # system name, dataset, sampling time, mem peak
-        log_info = ["cugraph", args.dataset, np.mean(sample_list[1:]), "sage"]
+        log_info = ["cuGraph", args.dataset, np.mean(sample_list[1:]), "sage"]
         writer.writerow(log_info)
         print(f"result writen to ../outputs/result.csv")
 

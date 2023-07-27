@@ -152,7 +152,7 @@ def benchmark_w_o_relabel(args, graph, nid):
     with open("../outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
         # system name, dataset, sampling time, mem peak
-        log_info = ["dgl", args.dataset, np.mean(epoch_time[1:]), "rw"]
+        log_info = ["DGL", args.dataset, np.mean(epoch_time[1:]), "rw"]
         writer.writerow(log_info)
         print(f"result writen to ../outputs/result.csv")
 

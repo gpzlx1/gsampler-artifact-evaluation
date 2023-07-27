@@ -1,5 +1,6 @@
 grep -Eo 'avg epoch time:[0-9]+\.[0-9]+' outputs/skywalker.log | awk -F':' 'BEGIN{
-    OFS=","; print "baseline,dataset,execution time,algorithm name"}
+    OFS=","; 
+    }
     {sub(/ avg epoch time:/,"",$0); 
     x=int(NR%4); 
     dataset="unknown"
@@ -16,5 +17,5 @@ grep -Eo 'avg epoch time:[0-9]+\.[0-9]+' outputs/skywalker.log | awk -F':' 'BEGI
     algorithm="rw"; 
     if(NR>8) 
     algorithm="node2vec"; 
-    printf "skywalker,%s,%s,%s\n", 
+    printf "SkyWalker,%s,%s,%s\n", 
     dataset, $2, algorithm}' >> outputs/result.csv

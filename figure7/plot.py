@@ -134,7 +134,8 @@ def isfloat(val):
 def draw_figure(input_path, yticks, lengend):
     algorithm = ["rw","sage","node2vec"]
     system_seq = ["cuGraph","GunRock","SkyWalker","PyG", "DGL", "gSampler"]
-    dataset_seq = ["livejournal", "ogbn-products", "ogbn-papers100M", "friendster"]
+    # dataset_seq = ["livejournal", "ogbn-products", "ogbn-papers100M", "friendster"]
+    dataset_seq = ["livejournal", "products", "papers100m", "friendster"]
 
     data = {"rw":defaultdict(dict),"sage":defaultdict(dict),"node2vec":defaultdict(dict)}
     with open(input_path, "r") as file:

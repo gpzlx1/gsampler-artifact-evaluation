@@ -61,8 +61,14 @@ def train(args, dataset):
     
     with open("../outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
+        
         # system name, dataset, sampling time, mem peak
-        log_info = ["pyg", args.dataset, np.mean(epoch_time[1:]), "sage"]
+        dataset_name= args.dataset
+        if args.dataset=="ogbn-products":
+            dataset_name="products"
+        elif args.dataset=="ogbn-papers100M":
+            dataset_name="papers100m"
+        log_info = ["PyG", dataset_name, np.mean(epoch_time[1:]), "sage"]
         writer.writerow(log_info)
         print(f"result writen to ../outputs/result.csv")
 
