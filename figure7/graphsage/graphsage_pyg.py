@@ -7,7 +7,7 @@ from ogb.nodeproppred import PygNodePropPredDataset
 from tqdm import tqdm
 import argparse
 import time
-
+import csv
 
 def train(args, dataset):
     # kwargs = {"batch_size": args.batchsize, "num_workers": 2, 'persistent_workers': True}
@@ -58,6 +58,13 @@ def train(args, dataset):
     print("Average epoch transfer time:", np.mean(epoch_transfer_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
     print("####################################################END")
+    
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["pyg", args.dataset, np.mean(epoch_time[1:]), "sage"]
+        writer.writerow(log_info)
+        print(f"result writen to ../outputs/result.csv")
 
 
 if __name__ == "__main__":

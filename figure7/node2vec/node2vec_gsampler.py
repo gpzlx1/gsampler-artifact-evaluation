@@ -12,7 +12,7 @@ import argparse
 from dgl.dataloading import DataLoader, NeighborSampler
 import tqdm
 import scipy.sparse as sp
-
+import csv
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 def load_ogbn_products():
@@ -149,6 +149,12 @@ def benchmark_w_o_relabel(args, matrix, nid):
     print('Average epoch sampling time:', np.mean(epoch_time[1:])*1000," ms")
     print('Average epoch gpu mem peak:', np.mean(mem_list[1:])," GB")
     print('####################################################END')
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), "node2vec"]
+        writer.writerow(log_info)
+        print(f"result writen to ../outputs/result.csv")
 
 def load(dataset,args):
     device = args.device

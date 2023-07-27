@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pyg_lib
 from pyg_lib import sampler
 import numpy as np
-
+import csv
 
 def benchmark(args, graph, nid, fanouts, n_epoch):
     print("####################################################START")
@@ -45,6 +45,12 @@ def benchmark(args, graph, nid, fanouts, n_epoch):
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
     print("####################################################END")
+    with open("../outputs/result.csv", "a") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        # system name, dataset, sampling time, mem peak
+        log_info = ["pyg", args.dataset, np.mean(epoch_time[1:]), "rw"]
+        writer.writerow(log_info)
+        print(f"result writen to ../outputs/result.csv")
 
 
 def train(dataset, args):
