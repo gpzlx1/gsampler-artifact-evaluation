@@ -8,85 +8,58 @@ import time
 import tqdm
 import argparse
 import csv
+from typing import List
 
 
-def sample_w_o_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
-    graph = A._graph
+def get_feature(features, rows, cols, use_uva):
+    if use_uva:
+        node_feats_u = gather_pinned_tensor_rows(features, rows)
+        node_feats_v = gather_pinned_tensor_rows(features, cols)
+    else:
+        node_feats_u = features[rows]
+        node_feats_v = features[cols]
+    return node_feats_u, node_feats_v
+
+
+torch.fx.wrap("get_feature")
+torch.fx.wrap("gather_pinned_tensor_rows")
+
+
+def asgcn_sampler(
+    A: gs.Matrix,
+    seeds: torch.Tensor,
+    fanouts: List,
+    features: torch.Tensor,
+    W: torch.Tensor,
+    use_uva: bool,
+):
     output_nodes = seeds
-    blocks = []
-    for fanout in fanouts:
-        subg = graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, False)
-        p = subg._CAPI_sum(1, 2, gs._COO)
-        p = p.sqrt()
-        row_indices = torch.unique(subg._CAPI_get_coo_rows(False))
-        if use_uva:
-            node_feats_u = gather_pinned_tensor_rows(features, row_indices)
-            node_feats_v = gather_pinned_tensor_rows(features, seeds)
-        else:
-            node_feats_u = features[row_indices]
-            node_feats_v = features[seeds]
+    ret = []
+    for K in fanouts:
+        subA = A[:, seeds]
+        p = subA.sum("w", axis=1).sqrt()
+        node_feats_u, node_feats_v = get_feature(features, subA.rows(), subA.cols(), use_uva)
         h_u = node_feats_u @ W[:, 0]
         h_v = node_feats_v @ W[:, 1]
         h_v_sum = torch.sum(h_v)
-        attention = torch.flatten((F.relu(h_u + h_v_sum) + 1) / fanout)
+        attention = torch.flatten((F.relu(h_u + h_v_sum) + 1) / K)
         g_u = torch.flatten(F.relu(h_u) + 1)
-
-        q = F.normalize(p[row_indices] * attention * g_u, p=1.0, dim=0)
-
-        selected, idx = torch.ops.gs_ops.list_sampling_with_probs(row_indices, q, fanout, False)
-
-        subg = subg._CAPI_slicing(selected, 1, gs._COO, gs._COO, False)
-        W_tilde = gs.ops.u_add_v(gs.Matrix(subg), h_u[idx], h_v, gs._COO)
-        W_tilde = (F.relu(W_tilde) + 1) / selected.numel()
-        W_tilde = gs.ops.e_div_u(gs.Matrix(subg), W_tilde, q[idx], gs._COO)
-        subg._CAPI_set_data(W_tilde * subg._CAPI_get_data("default"))
-
-        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
-        seeds = unique_tensor
-    input_nodes = seeds
-    return input_nodes, output_nodes, blocks
-
-
-def sample_w_relabel(A: gs.Matrix, seeds, features, W, fanouts, use_uva):
-    graph = A._graph
-    output_nodes = seeds
-    blocks = []
-    for fanout in fanouts:
-        subg = graph._CAPI_slicing(seeds, 0, gs._CSC, gs._COO, True)
-        p = subg._CAPI_sum(1, 2, gs._COO)
-        p = p.sqrt()
-        row_indices = subg._CAPI_get_rows()
-        num_pick = np.min([row_indices.numel(), fanout])
-        if use_uva:
-            node_feats_u = gather_pinned_tensor_rows(features, row_indices)
-            node_feats_v = gather_pinned_tensor_rows(features, seeds)
-        else:
-            node_feats_u = features[row_indices]
-            node_feats_v = features[seeds]
-        h_u = node_feats_u @ W[:, 0]
-        h_v = node_feats_v @ W[:, 1]
-        h_v_sum = torch.sum(h_v)
-        attention = torch.flatten((F.relu(h_u + h_v_sum) + 1) / fanout)
-        g_u = torch.flatten(F.relu(h_u) + 1)
-
         q = F.normalize(p * attention * g_u, p=1.0, dim=0)
 
-        selected = torch.multinomial(q, num_pick, replacement=False)
+        sampleA, select_index = subA.collective_sampling(K, q, False)
 
-        subg = subg._CAPI_slicing(selected, 1, gs._COO, gs._COO, False)
-        W_tilde = gs.ops.u_add_v(gs.Matrix(subg), h_u, h_v, gs._COO)
-        W_tilde = (F.relu(W_tilde) + 1) / selected.numel()
-        W_tilde = gs.ops.e_div_u(gs.Matrix(subg), W_tilde, q[selected], gs._COO)
-        subg._CAPI_set_data(W_tilde * subg._CAPI_get_data("default"))
+        sampleA.edata["w"] = gs.ops.u_add_v(sampleA, h_u[select_index], h_v)
+        sampleA.edata["w"] = (F.relu(sampleA.edata["w"]) + 1) / sampleA.num_rows()
+        sampleA = sampleA.div("w", q[select_index], 1)
 
-        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
-        seeds = unique_tensor
+        seeds = sampleA.all_nodes()
+        ret.append(sampleA)
     input_nodes = seeds
-    return input_nodes, output_nodes, blocks
+    return input_nodes, output_nodes, ret
 
 
 def benchmark(args, graph, nid, fanouts, n_epoch, features, W, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
     seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
 
     epoch_time = []
@@ -99,7 +72,7 @@ def benchmark(args, graph, nid, fanouts, n_epoch, features, W, sampler):
         torch.cuda.synchronize()
         start = time.time()
         for it, seeds in enumerate(tqdm.tqdm(seedloader)):
-            input_nodes, output_nodes, blocks = sampler(graph, seeds, features, W, fanouts, args.use_uva)
+            input_nodes, output_nodes, blocks = sampler(graph, seeds, fanouts, features, W, args.use_uva)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
@@ -112,7 +85,7 @@ def benchmark(args, graph, nid, fanouts, n_epoch, features, W, sampler):
         # system name, dataset, sampling time, mem peak
         log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
         writer.writerow(log_info)
-    
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -138,16 +111,16 @@ def train(dataset, args):
         csc_indptr = csc_indptr.pin_memory()
         csc_indices = csc_indices.pin_memory()
         weight, features = weight.pin_memory(), features.pin_memory()
-    m = gs.Matrix(gs.Graph(False))
-    m._graph._CAPI_load_csc(csc_indptr, csc_indices)
-    m._graph._CAPI_set_data(weight)
-    print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
+    m = gs.Matrix()
+    m.load_graph("CSC", [csc_indptr, csc_indices])
+    m.edata["w"] = weight
+
+    rand_idx = torch.randint(0, train_nid.numel(), (args.batchsize,), device="cuda")
+    seeds = train_nid[rand_idx]
+    compile_func = gs.jit.compile(func=asgcn_sampler, args=(m, seeds, fanouts, features, W, args.use_uva))
 
     n_epoch = args.num_epoch
-    if args.dataset != "ogbn-papers100M":
-        benchmark(args, m, train_nid, fanouts, n_epoch, features, W, sample_w_o_relabel)
-    else:
-        benchmark(args, m, train_nid, fanouts, n_epoch, features, W, sample_w_relabel)
+    benchmark(args, m, train_nid, fanouts, n_epoch, features, W, compile_func)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import csv
 
 
 def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
 
     seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
 
@@ -26,7 +26,7 @@ def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
         torch.cuda.synchronize()
         start = time.time()
         for it, seeds in enumerate(tqdm.tqdm(seedloader)):
-            input_nodes, output_nodes, blocks = sampler(matrix, fanouts, seeds)
+            input_nodes, output_nodes, blocks = sampler(matrix, seeds, fanouts)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
@@ -47,7 +47,7 @@ def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
 
 
 def benchmark_w_batching(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
     batch_size = args.batching_batchsize
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)
@@ -107,22 +107,30 @@ def train(dataset, args):
         csc_indptr = csc_indptr.pin_memory()
         csc_indices = csc_indices.pin_memory()
         weight = weight.pin_memory()
-    m = gs.Matrix(gs.Graph(False))
-    m._graph._CAPI_load_csc(csc_indptr, csc_indices)
-    m._graph._CAPI_set_data(weight)
-    print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
+    m = gs.Matrix()
+    m.load_graph("CSC", [csc_indptr, csc_indices])
+    m.edata["w"] = weight
+    bm = gs.BatchMatrix()
+    bm.load_from_matrix(m)
+
+    rand_idx = torch.randint(0, train_nid.numel(), (args.batchsize,), device="cuda")
+    seeds = train_nid[rand_idx]
 
     n_epoch = args.num_epoch
     if args.dataset == "ogbn-products":
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion_selection)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_o_relabel_fusion_selection)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, ladies_sampler)
+        compile_func = gs.jit.compile(func=ladies_sampler, args=(m, seeds, fanouts), try_compact=False, format_select=False)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, compile_func)
+        compile_func = gs.jit.compile(func=ladies_sampler, args=(m, seeds, fanouts), try_compact=True, format_select=True)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, compile_func)
+        benchmark_w_batching(args, bm, train_nid, fanouts, n_epoch, batch_ladies_sampler)
     elif args.dataset == "ogbn-papers100M":
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_o_relabel_fusion)
-        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, w_relabel_fusion_selection)
-        benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batching_w_relabel_fusion_selection)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, ladies_sampler)
+        compile_func = gs.jit.compile(func=ladies_sampler, args=(m, seeds, fanouts), try_compact=False, format_select=False)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, compile_func)
+        compile_func = gs.jit.compile(func=ladies_sampler, args=(m, seeds, fanouts), try_compact=True, format_select=True)
+        benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, compile_func)
+        benchmark_w_batching(args, bm, train_nid, fanouts, n_epoch, batch_ladies_sampler)
     else:
         raise NotImplementedError
 
