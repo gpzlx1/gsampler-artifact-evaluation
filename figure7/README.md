@@ -86,7 +86,7 @@ bash run_graphsage_gsampler.sh
 
 
 
-### Run gunrock
+### Run GunRock
 
 ```shell
 #in figure7/
@@ -124,7 +124,7 @@ bash run_cugraph.sh
 bash uva_cugraph.sh # because loading large graph to cugraph is very slow(12h+), this is an optional operation
 ```
 # Ploting
-The result is in `figure7/outputs.csv`
+The result is in `figure7/outputs/result.csv`
 
 In `figure7/`, run 
 ```shell
