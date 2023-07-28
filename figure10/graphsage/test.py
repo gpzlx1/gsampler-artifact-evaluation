@@ -103,15 +103,16 @@ def train(dataset, args):
     if use_uva and device == "cpu":
         csc_indptr = csc_indptr.pin_memory()
         csc_indices = csc_indices.pin_memory()
-    m = gs.Matrix(gs.Graph(False))
-    m._graph._CAPI_load_csc(csc_indptr, csc_indices)
-    print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
+    m = gs.Matrix()
+    m.load_graph("CSC", [csc_indptr, csc_indices])
+    bm = gs.BatchMatrix()
+    bm.load_from_matrix(m)
 
     n_epoch = args.num_epoch
     benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, plain)
     benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, fusion)
     benchmark_w_o_batching(args, m, train_nid, fanouts, n_epoch, fusion)
-    benchmark_w_batching(args, m, train_nid, fanouts, n_epoch, batch_fusion)
+    benchmark_w_batching(args, bm, train_nid, fanouts, n_epoch, batch_fusion)
 
 
 if __name__ == "__main__":

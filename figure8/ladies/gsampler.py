@@ -11,7 +11,7 @@ import csv
 from typing import List
 
 
-def ladise_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor, seeds_ptr: torch.Tensor):
+def ladies_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor, seeds_ptr: torch.Tensor):
     ret = []
     for K in fanouts:
         subA = A[:, seeds::seeds_ptr]
@@ -94,7 +94,7 @@ def train(dataset, args):
     bm.load_from_matrix(m)
 
     n_epoch = args.num_epoch
-    benchmark(args, bm, train_nid, fanouts, n_epoch, ladise_sampler)
+    benchmark(args, bm, train_nid, fanouts, n_epoch, ladies_sampler)
 
 
 if __name__ == "__main__":
