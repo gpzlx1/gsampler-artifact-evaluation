@@ -1,14 +1,14 @@
 # Introduction
 
-The guide is to help users to reproduce figure8 in the paper.
+This guide aims to assist users in reproducing Figure 8 from the paper.
 
 # Run Experiments
 
-There are 4 complex algorithms in total to be run.
+To run the experiments, execute the following 4 complex algorithms:
 
 ```shell
 export epochs=6
 bash testbench.sh
 ```
 
-Then, the 4 pdf format figures of results will be generated in `outputs/` dir. See `../fig_examples/figure8` for example.
+After running the commands, you will find the 4 result figures in PDF format located in the `outputs/` directory. For an example, refer to `../fig_examples/figure8`.
