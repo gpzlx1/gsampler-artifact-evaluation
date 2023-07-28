@@ -12,3 +12,4 @@ bash testbench.sh
 
 cd ../table8
 bash testbench.sh
+
