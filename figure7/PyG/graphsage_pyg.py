@@ -21,7 +21,7 @@ def train(args, dataset):
         num_neighbors=[25, 10],
         batch_size=args.batchsize,
         input_nodes=train_idx,
-        num_workers=2
+        # num_workers=2
     )
     print("####################################################START")
     epoch_time = []

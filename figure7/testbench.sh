@@ -1,31 +1,29 @@
+echo "===test gSampler==="
+cd gSampler
+bash run_deepwalk_gsampler.sh
+bash node2vec_gsampler.py
+bash run_graphsage_gsampler.sh
 
-mkdir -p outputs
-cd deepwalk
-echo "===deepwalk"
-bash run_dgl.sh
-bash run_gsampler.sh
-bash run_pyg.sh
+echo "===test DGL==="
+cd ../dgl
+bash run_deepwalk_dgl.sh
+bash run_node2vec_dgl.sh
+bash run_graphsage_dgl.sh
 
-cd ../node2vec
-echo "===node2vec"
-bash run_dgl.sh
-bash run_gsampler.sh
-
-cd ../graphsage
-echo "===graphsage"
-bash run_dgl.sh
-bash run_gsampler.sh
-bash run_pyg.sh
+echo "===test PyG==="
+cd ../PyG
+bash run_deepwalk_pyg.py
+bash run_graphsage_pyg.sh
 
 cd ..
 
-echo "===gunrock"
+echo "===test gunrock==="
 bash run_gunrock.sh
 
-echo "===skywalker"
+echo "===test skywalker==="
 bash run_skywalker.sh 
 
-echo "===cuGraph"
+echo "===test cuGraph==="
 cd curgraph
 bash run_cugraph.sh
 

@@ -10,9 +10,10 @@ In `figure7` directory, run command below to clone baseline code for building：
 git submodule update --init --recursive
 ```
 
-## Build GunRock
+## Build GunRock [optional]
 
 ```shell
+git clone -b gsampler-baseline https://github.com/DanielMao1/gunrock-gsampler-baseline.git
 cd gunrock/
 git checkout gsampler-baseline
 mkdir build
@@ -21,11 +22,12 @@ cmake ..
 make sage
 ```
 
-## Build Skywalker
+## Build Skywalker [optional]
 
 Back to figure7, and execute the following command to build Skywalker
 
 ```shell
+git clone -b gsampler-baseline https://github.com/DanielMao1/skywalker-gsampler-baseline.git
 cd skywalker/
 git checkout gsampler-baseline
 mkdir build
@@ -34,15 +36,14 @@ cmake ..
 make -j
 ```
 
-## Build PyG
+## Build PyG [optional]
 
-It is assumed that the pig the already installed in `gsampler-ae`, if not,  install it first:
+It is assumed that the PyG the already installed in `gsampler-ae`, if not,  install it first:
 
 ```shell
 pip install torch_geometric
 ```
 
-In `/home/ubuntu` (or other directory you prefer)
 
 ```shell
 git clone https://github.com/pyg-team/pyg-lib.git --recursive
@@ -74,12 +75,16 @@ bash testbench.sh
 
 ## Run Seperately
 
-### Run cuGraph
+### Run gSampler 
 
 ```shell
-cd cuGraph
-bash run_cugraph.sh
+cd gSampler
+bash run_deepwalk_gsampler.sh
+bash node2vec_gsampler.py
+bash run_graphsage_gsampler.sh
 ```
+
+
 
 ### Run gunrock
 
@@ -95,24 +100,34 @@ bash run_gunrock.sh
 bash run_skywalker.sh
 ```
 
-### Run DGL/PyG/gSampler
-
+### Run DGL
 ```shell
-# in figure7/ run deepwalk
-cd deepwalk
-bash run_dgl.sh
-bash run_gsampler.sh
-bash run_pyg.sh
-
-# in figure7/ run node2vec
-cd node2vec
-bash run_dgl.sh
-bash run_gsampler.sh
-
-# in figure7/ run graphsage
-cd graphsage
-bash run_dgl.sh
-bash run_gsampler.sh
-bash run_pyg.sh
+cd dgl
+bash run_deepwalk_dgl.sh
+bash run_node2vec_dgl.sh
+bash run_graphsage_dgl.sh
 ```
 
+### Run PyG
+
+```shell
+cd PyG
+bash run_deepwalk_pyg.py
+bash run_graphsage_pyg.sh
+```
+
+### Run cuGraph
+
+```shell
+cd cuGraph
+bash run_cugraph.sh
+bash uva_cugraph.sh # because loading large graph to cugraph is very slow(12h+), this is an optional operation
+```
+# Ploting
+The result is in `figure7/outputs.csv`
+
+In `figure7/`, run 
+```shell
+python plot.py
+```
+Then the figures will be generated at `outputs/`.
