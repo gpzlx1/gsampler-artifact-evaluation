@@ -13,78 +13,16 @@ from dgl.dataloading import DataLoader, NeighborSampler
 import tqdm
 import scipy.sparse as sp
 import csv
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-def load_ogbn_products():
-    data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
-    splitted_idx = data.get_idx_split()
-    g, labels = data[0]
-    g=g.long()
-    feat = g.ndata['feat']
-    labels = labels[:, 0]
-    n_classes = len(
-        torch.unique(labels[torch.logical_not(torch.isnan(labels))]))
-    g.ndata.clear()
-    # print("before:",g)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/products_adj.npz", g.adj(scipy_fmt='coo'))
-    return g, feat, labels, n_classes, splitted_idx
-
-def load_100Mpapers():
-    train_id = torch.load("/home/ubuntu/dataset/papers100m_train_id.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn-papers100M_adj.npz")
-    # print("before:",g)
-    g = dgl.from_scipy(coo_matrix)
- 
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g=g.long()
-    # print(g)
-    # exit()
-    return g, None, None, None, splitted_idx
-
-def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal/livejournal_adj.npz")
-
-    g = dgl.from_scipy(coo_matrix)
-
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/livejournal/livejournal_adj.npzcon", g.adj(scipy_fmt='coo'))
-    g=g.long()
-    return g, None, None, None, splitted_idx
+from load_graph_utils import load_ogbn_products,load_livejournal,load_100Mpapers
 
 def load_friendster():
-    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid.pt")
+    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid_10x.pt")
     splitted_idx = dict()
     splitted_idx['train']=train_id
     bin_path = "/home/ubuntu/dataset/friendster/friendster_adj.bin"
     g_list, _ = dgl.load_graphs(bin_path)
     g = g_list[0]
     print("graph loaded")
-    # train_nid = torch.nonzero(g.ndata["train_mask"], as_tuple=True)[0]
-    # test_nid = torch.nonzero(g.ndata["test_mask"], as_tuple=True)[0]
-    # val_nid = torch.nonzero(g.ndata["val_mask"], as_tuple=True)[0]
-
-    # features = np.random.rand(g.num_nodes(), 128)
-    # labels = np.random.randint(0, 3, size=g.num_nodes())
-    # feat = torch.tensor(features, dtype=torch.float32)
-    # labels = torch.tensor(labels, dtype=torch.int64)
-    # n_classes = 3
-    # csr_matrix = coo_matrix.tocsr()
-    # sp.save_npz("/home/ubuntu/data/friendster/friendster_adj_csr.npz",csr_matrix)
-    # print("file saved!")
-    # g = dgl.from_scipy(coo_matrix)
     print(g.formats())
     # g = g.formats("csc")
     g=g.long()
@@ -129,13 +67,7 @@ def benchmark_w_o_relabel(args, matrix, nid):
                 break
                 num_batches = int((seeds.numel() + small_batch_size - 1) / small_batch_size)
             paths = matrix_batch_sampler_deepwalk(matrix, seeds, args.walk_length)
-            # print("paths:",paths.shape,paths.device,"num_batches:",num_batches)
-
             split_paths = torch.tensor_split(paths,num_batches)
-            # print(len(split_paths))
-            # print(split_paths[0].shape)
-            # print(len(ptrts[0][0]),len(indts[0][0]))
-            # print(len(ptrts[1][0]),len(indts[1][0]))
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
@@ -151,8 +83,11 @@ def benchmark_w_o_relabel(args, matrix, nid):
     print('####################################################END')
     with open("../outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
-        # system name, dataset, sampling time, mem peak
-        log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), "node2vec"]
+        avg_sampling_time = np.mean(epoch_time[1:])
+        if args.dataset == 'friendster':
+            # to align with papers result
+            avg_sampling_time /=10
+        log_info = ["gSampler", args.dataset, avg_sampling_time, "node2vec"]
         writer.writerow(log_info)
         print(f"result writen to ../outputs/result.csv")
 

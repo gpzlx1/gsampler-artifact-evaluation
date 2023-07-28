@@ -13,61 +13,7 @@ from dgl.dataloading import DataLoader, NeighborSampler,BlockSampler
 import tqdm
 import scipy.sparse as sp
 import csv
-
-def load_ogbn_products():
-    data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
-    splitted_idx = data.get_idx_split()
-    g, labels = data[0]
-    g=g.long()
-    feat = g.ndata['feat']
-    labels = labels[:, 0]
-    n_classes = len(torch.unique(labels[torch.logical_not(torch.isnan(labels))]))
-    g.ndata.clear()
-    # print("before:",g)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/products_adj.npz", g.adj(scipy_fmt='coo'))
-    return g, feat, labels, n_classes, splitted_idx
-
-def load_100Mpapers():
-    train_id = torch.load("/home/ubuntu/dataset/papers100m_train_id.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn-papers100M_adj.npz")
-    g = dgl.from_scipy(coo_matrix)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g=g.long()
-    print("graph loaded")
-    return g, None, None, None, splitted_idx
-
-def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal/livejournal_adj.npz")
-
-    g = dgl.from_scipy(coo_matrix)
-
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/livejournal/livejournal_adj.npzcon", g.adj(scipy_fmt='coo'))
-    g=g.long()
-    return g, None, None, None, splitted_idx
-
-def load_friendster():
-    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    bin_path = "/home/ubuntu/dataset/friendster/friendster_adj.bin"
-    g_list, _ = dgl.load_graphs(bin_path)
-    g = g_list[0]
-    g=g.long()
-    print("graph loaded")
-    return g, None,None,None,splitted_idx
+from load_graph_utils import load_ogbn_products,load_livejournal,load_100Mpapers,load_friendster
 
 class DGLNeighborSampler(BlockSampler):
     def __init__(self, fanouts, edge_dir='in', prob=None, replace=False,

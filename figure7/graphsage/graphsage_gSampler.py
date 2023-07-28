@@ -13,83 +13,8 @@ from dgl.dataloading import DataLoader, NeighborSampler
 import tqdm
 import scipy.sparse as sp
 import csv
+from load_graph_utils import load_ogbn_products,load_livejournal,load_100Mpapers,load_friendster
 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-def load_ogbn_products():
-    data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
-    splitted_idx = data.get_idx_split()
-    g, labels = data[0]
-    g=g.long()
-    feat = g.ndata['feat']
-    labels = labels[:, 0]
-    n_classes = len(
-        torch.unique(labels[torch.logical_not(torch.isnan(labels))]))
-    g.ndata.clear()
-    # print("before:",g)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/products_adj.npz", g.adj(scipy_fmt='coo'))
-    return g, feat, labels, n_classes, splitted_idx
-
-def load_100Mpapers():
-    train_id = torch.load("/home/ubuntu/dataset/papers100m_train_id.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn-papers100M_adj.npz")
-    # print("before:",g)
-    g = dgl.from_scipy(coo_matrix)
- 
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g=g.long()
-    # print(g)
-    # exit()
-    return g, None, None, None, splitted_idx
-
-def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal/livejournal_adj.npz")
-
-    g = dgl.from_scipy(coo_matrix)
-
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    # print("after:",g)
-    # sp.save_npz("/home/ubuntu/data/livejournal/livejournal_adj.npzcon", g.adj(scipy_fmt='coo'))
-    g=g.long()
-    return g, None, None, None, splitted_idx
-
-def load_friendster():
-    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    bin_path = "/home/ubuntu/dataset/friendster/friendster_adj.bin"
-    g_list, _ = dgl.load_graphs(bin_path)
-    g = g_list[0]
-    print("graph loaded")
-    # train_nid = torch.nonzero(g.ndata["train_mask"], as_tuple=True)[0]
-    # test_nid = torch.nonzero(g.ndata["test_mask"], as_tuple=True)[0]
-    # val_nid = torch.nonzero(g.ndata["val_mask"], as_tuple=True)[0]
-
-    # features = np.random.rand(g.num_nodes(), 128)
-    # labels = np.random.randint(0, 3, size=g.num_nodes())
-    # feat = torch.tensor(features, dtype=torch.float32)
-    # labels = torch.tensor(labels, dtype=torch.int64)
-    # n_classes = 3
-    # csr_matrix = coo_matrix.tocsr()
-    # sp.save_npz("/home/ubuntu/data/friendster/friendster_adj_csr.npz",csr_matrix)
-    # print("file saved!")
-    # g = dgl.from_scipy(coo_matrix)
-    print(g.formats())
-    # g = g.formats("csc")
-    g=g.long()
-    return g, None,None,None,splitted_idx
 
 def sage_batchsampler(A: gs.Graph, seeds, seeds_ptr, fanouts):
     ptrts, indts = [], []
@@ -106,24 +31,17 @@ def sage_batchsampler(A: gs.Graph, seeds, seeds_ptr, fanouts):
     return ptrts, indts
 
 
-
 def benchmark_w_o_relabel(args, matrix, nid):
-    print('####################################################DGL deepwalk')
-    # sampler = DeepWalkSampler(args.walk_length)
-    print("train id size:",len(nid))
+    print('###################################################gSampler deepwalk')
+    print(f"train id size: {len(nid)}, dataset:{args.dataset}")
     batch_size = args.big_batch
     seedloader = SeedGenerator(
         nid, batch_size=batch_size, shuffle=True, drop_last=False)
     fanouts = [int(x.strip()) for x in args.samples.split(',')]
-    # train_dataloader = DataLoader(g, train_nid, sampler,batch_size=config['batch_size'], use_prefetch_thread=False,
-    # shuffle=False,drop_last=False, num_workers=config['num_workers'],device='cuda',use_uva=config['use_uva'])
-    
-
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)
     orig_seeds_ptr = torch.arange(num_batches + 1, dtype=torch.int64, device='cuda') * small_batch_size
     print(args.num_epoch, batch_size, small_batch_size, fanouts)
-    
     epoch_time = []
     mem_list = []
     torch.cuda.synchronize()
@@ -241,9 +159,4 @@ if __name__ == '__main__':
     elif args.dataset == 'livejournal':
         dataset = load_livejournal() 
     print(dataset[0])
-
-
-# bench('DGL random walk', dgl_sampler, g, 4, iters=10, node_idx=nodes)
-# bench('Matrix random walk Non-fused', matrix_sampler_nonfused, matrix,
-#       4, iters=10, node_idx=nodes)
     load(dataset,args)

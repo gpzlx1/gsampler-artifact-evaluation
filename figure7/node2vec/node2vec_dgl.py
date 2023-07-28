@@ -13,73 +13,8 @@ from dgl.dataloading import DataLoader, NeighborSampler
 import tqdm
 import scipy.sparse as sp
 import csv
+from load_graph_utils import load_ogbn_products,load_livejournal,load_100Mpapers,load_friendster
 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-def load_ogbn_products():
-    data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
-    splitted_idx = data.get_idx_split()
-    g, labels = data[0]
-    g=g.long()
-    feat = g.ndata['feat']
-    labels = labels[:, 0]
-    n_classes = len(torch.unique(labels[torch.logical_not(torch.isnan(labels))]))
-    g.ndata.clear()
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    print("products")
-    return g, feat, labels, n_classes, splitted_idx
-
-def load_100Mpapers():
-    train_id = torch.load("/home/ubuntu/dataset/papers100m_train_id.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn-papers100M_adj.npz")
-    
-    g = dgl.from_scipy(coo_matrix)
-    print("before:",g)
-    # g = g.formats("csc")
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g=g.long()
-    return g, None, None, None, splitted_idx
-
-def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal/livejournal_adj.npz")
-
-    g = dgl.from_scipy(coo_matrix)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g=g.long()
-    return g, None, None, None, splitted_idx
-
-def load_friendster():
-    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx['train']=train_id
-    # bin_path = "/home/ubuntu/data/friendster/friendster.bin"
-    # g_list, _ = dgl.load_graphs(bin_path)
-    # g = g_list[0]
-    # print("graph loaded")
-    # train_nid = torch.nonzero(g.ndata["train_mask"], as_tuple=True)[0]
-    # test_nid = torch.nonzero(g.ndata["test_mask"], as_tuple=True)[0]
-    # val_nid = torch.nonzero(g.ndata["val_mask"], as_tuple=True)[0]
-
-    # features = np.random.rand(g.num_nodes(), 128)
-    # labels = np.random.randint(0, 3, size=g.num_nodes())
-    # feat = torch.tensor(features, dtype=torch.float32)
-    # labels = torch.tensor(labels, dtype=torch.int64)
-    # n_classes = 3
-
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/friendster/friendster_adj.npz")
-    csc_matrix = coo_matrix.tocsc()
-    g = dgl.from_scipy(csc_matrix)
-    # g = g.formats("csc")
-    # g=g.long()
-    return g, None,None,None,splitted_idx
 
 class node2vecSampler(object):
     def __init__(self,walk_length, p=0.5,q=2,):

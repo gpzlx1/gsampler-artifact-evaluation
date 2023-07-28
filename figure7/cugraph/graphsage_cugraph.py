@@ -10,6 +10,10 @@ from ogb.nodeproppred import DglNodePropPredDataset
 import scipy.sparse as sp
 import csv
 import argparse
+import sys 
+sys.path.append("..") 
+from load_graph_utils import load_ogbn_products,load_livejournal
+
 
 def load_ogb(name):
     data = DglNodePropPredDataset(name=name,root="/home/ubuntu/dataset/")
@@ -26,10 +30,10 @@ def load_ogb(name):
 
 
 def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
+    train_id = torch.load("/home/ubuntu/dataset/livejournal/livejournal_trainid.pt")
     splitted_idx = dict()
     splitted_idx["train"] = train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal_adj.npz")
+    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal/livejournal_adj.npz")
     g = dgl.from_scipy(coo_matrix)
     g = dgl.remove_self_loop(g)
     g = dgl.add_self_loop(g)
@@ -79,14 +83,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--dataset",
     default="livejournal",
-    choices=["producrs", "livejournal"],
+    choices=["products", "livejournal"],
     help="which dataset to load for training",
 )
 args = parser.parse_args()
 if args.dataset=="livejournal":
     dataset = load_livejournal()
 else:
-    dataset = load_ogb("ogbn-products")
+    dataset = load_ogbn_products()
 
 dgl_graph = dataset[0]
 train_id = dataset[4]["train"]
