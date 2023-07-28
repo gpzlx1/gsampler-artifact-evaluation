@@ -1,10 +1,10 @@
 # Introduction
 
-The guide is to help users to reproduce figure7 in the paper.  We need to build three systems firstly and then use `testbench.sh` to generate figure7.
+This guide aims to help users reproduce Figure 7 from the paper. To achieve this, three systems need to be built first, followed by using `testbench.sh` to generate Figure 7.
 
-# Build GunRock, SkyWalker and PyG
+# Build GunRock, SkyWalker, and PyG
 
-In `figure7` directory, run command below to clone baseline code for building：
+In the `figure7` directory, execute the following command to clone the baseline code for building:
 
 ```shell
 git submodule update --init --recursive
@@ -22,9 +22,9 @@ cmake ..
 make sage
 ```
 
-## Build Skywalker [optional]
+## Build SkyWalker [optional]
 
-Back to figure7, and execute the following command to build Skywalker
+Return to the `figure7` directory and execute the following command to build SkyWalker:
 
 ```shell
 git clone -b gsampler-baseline https://github.com/DanielMao1/skywalker-gsampler-baseline.git
@@ -38,12 +38,11 @@ make -j
 
 ## Build PyG [optional]
 
-It is assumed that the PyG the already installed in `gsampler-ae`, if not,  install it first:
+Assuming that PyG is already installed in `gsampler-ae`, if not, install it first:
 
 ```shell
 pip install torch_geometric
 ```
-
 
 ```shell
 git clone https://github.com/pyg-team/pyg-lib.git --recursive
@@ -65,15 +64,15 @@ pip install -e .
 
 # Run Experiments
 
-There are 6 system in total to be run. The experiments can be either run all together at once or seperately.
+There are a total of 6 systems to be run. The experiments can be run all together at once or separately.
 
-## Run all baseline at once
+## Run all baselines at once
 
 ```shell
 bash testbench.sh
 ```
 
-## Run Seperately
+## Run Separately
 
 ### Run gSampler 
 
@@ -84,23 +83,22 @@ bash node2vec_gsampler.py
 bash run_graphsage_gsampler.sh
 ```
 
-
-
-### Run gunrock
+### Run Gunrock
 
 ```shell
-#in figure7/
+# In figure7/
 bash run_gunrock.sh
 ```
 
 ### Run SkyWalker
 
 ```shell
-#in figure7/
+# In figure7/
 bash run_skywalker.sh
 ```
 
 ### Run DGL
+
 ```shell
 cd dgl
 bash run_deepwalk_dgl.sh
@@ -123,11 +121,15 @@ cd cuGraph
 bash run_cugraph.sh
 bash uva_cugraph.sh # because loading large graph to cugraph is very slow(12h+), this is an optional operation
 ```
-# Ploting
+
+# Plotting
+
 The result is in `figure7/outputs.csv`
 
 In `figure7/`, run 
+
 ```shell
 python plot.py
 ```
+
 Then the figures will be generated at `outputs/`.
