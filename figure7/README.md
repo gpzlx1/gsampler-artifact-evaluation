@@ -79,7 +79,7 @@ bash testbench.sh
 ```shell
 cd gSampler
 bash run_deepwalk_gsampler.sh
-bash node2vec_gsampler.py
+bash run_node2vec_gsampler.sh
 bash run_graphsage_gsampler.sh
 ```
 
@@ -112,7 +112,7 @@ bash run_graphsage_dgl.sh
 
 ```shell
 cd PyG
-bash run_deepwalk_pyg.py
+bash run_deepwalk_pyg.sh
 bash run_graphsage_pyg.sh
 ```
 
