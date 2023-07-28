@@ -14,8 +14,6 @@ import tqdm
 import scipy.sparse as sp
 import csv
 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
 def load_ogbn_products():
     data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
     splitted_idx = data.get_idx_split()

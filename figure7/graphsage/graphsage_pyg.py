@@ -12,7 +12,7 @@ import csv
 def train(args, dataset):
     # kwargs = {"batch_size": args.batchsize, "num_workers": 2, 'persistent_workers': True}
     # kwargs = {'batch_size': args.batchsize}
-
+    
     graph, train_idx = dataset
     # graph = graph.to('cuda')
 
@@ -21,6 +21,7 @@ def train(args, dataset):
         num_neighbors=[25, 10],
         batch_size=args.batchsize,
         input_nodes=train_idx,
+        num_workers=2
     )
     print("####################################################START")
     epoch_time = []
@@ -36,22 +37,23 @@ def train(args, dataset):
         transfer_time = 0
         torch.cuda.synchronize()
         start = time.time()
-        for it, data in enumerate(tqdm(train_loader)):
-            tic = time.time()
-            data = data.to("cuda")
-            transfer_time += time.time() - tic
-        torch.cuda.synchronize()
-        epoch_time.append(time.time() - start - transfer_time)
-        epoch_transfer_time.append(transfer_time)
-        mem_list.append(
-            (torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024)
-        )
-
-        print(
-            "Epoch {:05d} | Epoch Sample Time {:.4f} s | Epoch Transfer Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(
-                epoch, epoch_time[-1], epoch_transfer_time[-1], mem_list[-1]
+        with train_loader.enable_cpu_affinity():
+            for it, data in enumerate(tqdm(train_loader)):
+                tic = time.time()
+                data = data.to("cuda")
+                transfer_time += time.time() - tic
+            torch.cuda.synchronize()
+            epoch_time.append(time.time() - start - transfer_time)
+            epoch_transfer_time.append(transfer_time)
+            mem_list.append(
+                (torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024)
             )
-        )
+
+            print(
+                "Epoch {:05d} | Epoch Sample Time {:.4f} s | Epoch Transfer Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(
+                    epoch, epoch_time[-1], epoch_transfer_time[-1], mem_list[-1]
+                )
+            )
 
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))

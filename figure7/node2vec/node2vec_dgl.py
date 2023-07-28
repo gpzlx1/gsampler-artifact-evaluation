@@ -96,7 +96,7 @@ class node2vecSampler(object):
 
 
 def benchmark_w_o_relabel(args, graph, nid):
-    print('####################################################DGL deepwalk')
+    print('####################################################DGL node2vec')
     sampler = node2vecSampler(args.walk_length)
     print("train id size:",len(nid))
     # seedloader = SeedGenerator(
