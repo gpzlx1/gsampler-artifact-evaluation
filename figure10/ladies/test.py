@@ -12,7 +12,7 @@ import csv
 
 
 def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
 
     seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
 
@@ -26,7 +26,7 @@ def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
         torch.cuda.synchronize()
         start = time.time()
         for it, seeds in enumerate(tqdm.tqdm(seedloader)):
-            input_nodes, output_nodes, blocks = sampler(matrix, fanouts, seeds)
+            input_nodes, output_nodes, blocks = sampler(matrix, seeds, fanouts)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
@@ -47,7 +47,7 @@ def benchmark_w_o_batching(args, matrix, nid, fanouts, n_epoch, sampler):
 
 
 def benchmark_w_batching(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
     batch_size = args.batching_batchsize
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)
