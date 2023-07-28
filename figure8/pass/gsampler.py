@@ -8,76 +8,44 @@ import time
 import tqdm
 import argparse
 import csv
+from typing import List
 
 
-def sample_w_o_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_a, use_uva):
-    blocks = []
+def pass_sampler(
+    A: gs.Matrix,
+    seeds: torch.Tensor,
+    fanouts: List,
+    features: torch.Tensor,
+    W1: torch.Tensor,
+    W2: torch.Tensor,
+    W3: torch.Tensor,
+    use_uva,
+):
+    ret = []
     output_nodes = seeds
-    for fanout in fanouts:
-        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._CSC + gs._COO, False)
-        att3 = subg._CAPI_normalize(0, gs._CSC)._CAPI_get_data("default").unsqueeze(1)
-        neighbors = torch.unique(subg._CAPI_get_coo_rows(False))
-        subA = gs.Matrix(subg)
-        if use_uva:
-            u_feats = gather_pinned_tensor_rows(features, neighbors)
-            v_feats = gather_pinned_tensor_rows(features, seeds)
-        else:
-            u_feats = features[neighbors]
-            v_feats = features[seeds]
-        u_feats_all_w1 = torch.empty((subg._CAPI_get_num_rows(), W_1.shape[1]), dtype=torch.float32, device="cuda")
-        u_feats_all_w1[neighbors] = u_feats @ W_1
-        v_feats_all_w1 = v_feats @ W_1
-        u_feats_all_w2 = torch.empty((subg._CAPI_get_num_rows(), W_2.shape[1]), dtype=torch.float32, device="cuda")
-        u_feats_all_w2[neighbors] = u_feats @ W_2
-        v_feats_all_w2 = v_feats @ W_2
-
-        res1 = gs.ops.u_mul_v(subA, u_feats_all_w1, v_feats_all_w1, gs._COO)
-        att1 = torch.sum(res1, dim=1).unsqueeze(1)
-        res2 = gs.ops.u_mul_v(subA, u_feats_all_w2, v_feats_all_w2, gs._COO)
-        att2 = torch.sum(res2, dim=1).unsqueeze(1)
-        att = torch.cat([att1, att2, att3], dim=1)
-        att = F.relu(att @ F.softmax(sample_a, dim=0))
+    for K in fanouts:
+        subA = A[:, seeds]
+        u_feats = features[subA.rows()]
+        v_feats = features[subA.cols()]
+        att1 = gs.ops.u_mul_v(subA, u_feats @ W1, v_feats @ W1, gs._COO)
+        att2 = gs.ops.u_mul_v(subA, u_feats @ W2, v_feats @ W2, gs._COO)
+        att1 = torch.sum(att1, dim=1)
+        att2 = torch.sum(att2, dim=1)
+        att3 = subA.div("w", subA.sum("w", axis=0), axis=0).edata["w"]
+        att = torch.stack([att1, att2, att3], dim=1)
+        att = F.relu(att @ F.softmax(W3, dim=0))
         att = att + 10e-10 * torch.ones_like(att)
-        subA._graph._CAPI_set_data(att)
-        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._CSC)
-        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
-        seeds = unique_tensor
+        subA.edata["w"] = att
+
+        sampleA = subA.individual_sampling(K, probs=att, replace=True)
+        seeds = sampleA.all_nodes()
+        ret.append(sampleA)
     input_nodes = seeds
-    return input_nodes, output_nodes, blocks
-
-
-def sample_w_relabel(A: gs.Matrix, seeds, fanouts, features, W_1, W_2, sample_a, use_uva):
-    blocks = []
-    output_nodes = seeds
-    for fanout in fanouts:
-        subg = A._graph._CAPI_slicing(seeds, 0, gs._CSC, gs._CSC, True)
-        rows = subg._CAPI_get_rows()
-        subA = gs.Matrix(subg)
-        if use_uva:
-            u_feats = gather_pinned_tensor_rows(features, rows)
-            v_feats = gather_pinned_tensor_rows(features, seeds)
-        else:
-            u_feats = features[rows]
-            v_feats = features[seeds]
-
-        res1 = gs.ops.u_mul_v(subA, u_feats @ W_1, v_feats @ W_1, gs._COO)
-        att1 = torch.sum(res1, dim=1).unsqueeze(1)
-        res2 = gs.ops.u_mul_v(subA, u_feats @ W_2, v_feats @ W_2, gs._COO)
-        att2 = torch.sum(res2, dim=1).unsqueeze(1)
-        att3 = subA._graph._CAPI_normalize(0, gs._CSC)._CAPI_get_data("default").unsqueeze(1)
-        att = torch.cat([att1, att2, att3], dim=1)
-        att = F.relu(att @ F.softmax(sample_a, dim=0))
-        att = att + 10e-10 * torch.ones_like(att)
-        subA._graph._CAPI_set_data(att)
-        subg = subA._graph._CAPI_sampling_with_probs(0, att, fanout, True, gs._CSC, gs._CSC)
-        unique_tensor, num_row, num_col, format_tensor1, format_tensor2, e_ids, format = subg._CAPI_relabel()
-        seeds = unique_tensor
-    input_nodes = seeds
-    return input_nodes, output_nodes, blocks
+    return input_nodes, output_nodes, ret
 
 
 def benchmark(args, graph, nid, fanouts, n_epoch, features, W1, W2, Wa, sampler):
-    print(f"####################################################{sampler.__name__}")
+    print("####################################################")
     seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
 
     epoch_time = []
@@ -103,7 +71,7 @@ def benchmark(args, graph, nid, fanouts, n_epoch, features, W1, W2, Wa, sampler)
         # system name, dataset, sampling time, mem peak
         log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
         writer.writerow(log_info)
-    
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -122,21 +90,22 @@ def train(dataset, args):
     features = features.to(device)
     W1 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 64)).to("cuda")
     W2 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 64)).to("cuda")
-    Wa = torch.FloatTensor([[10e-3], [10e-3], [10e-1]]).to("cuda")
+    W3 = torch.FloatTensor([[10e-3], [10e-3], [10e-1]]).to("cuda")
     csc_indptr, csc_indices, edge_ids = g.adj_sparse("csc")
     if args.use_uva and device == "cpu":
         csc_indptr = csc_indptr.pin_memory()
         csc_indices = csc_indices.pin_memory()
         features = features.pin_memory()
-    m = gs.Matrix(gs.Graph(False))
-    m._graph._CAPI_load_csc(csc_indptr, csc_indices)
-    print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
+    m = gs.Matrix()
+    m.load_graph("CSC", [csc_indptr, csc_indices])
+    m.edata["w"] = torch.ones(m.num_edges(), dtype=torch.float32).cuda()
+
+    rand_idx = torch.randint(0, train_nid.numel(), (args.batchsize,), device="cuda")
+    seeds = train_nid[rand_idx]
+    compile_func = gs.jit.compile(func=pass_sampler, args=(m, seeds, fanouts, features, W1, W2, W3, args.use_uva))
 
     n_epoch = args.num_epoch
-    if args.dataset == "livejournal" or args.dataset == "ogbn-products":
-        benchmark(args, m, train_nid, fanouts, n_epoch, features, W1, W2, Wa, sample_w_o_relabel)
-    else:
-        benchmark(args, m, train_nid, fanouts, n_epoch, features, W1, W2, Wa, sample_w_relabel)
+    benchmark(args, m, train_nid, fanouts, n_epoch, features, W1, W2, W3, compile_func)
 
 
 if __name__ == "__main__":
