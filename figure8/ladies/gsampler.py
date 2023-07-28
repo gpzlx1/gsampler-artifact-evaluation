@@ -12,41 +12,22 @@ from typing import List
 
 
 def ladise_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor, seeds_ptr: torch.Tensor):
-    torch.cuda.nvtx.range_push("ladies sampler")
     ret = []
     for K in fanouts:
-        torch.cuda.nvtx.range_push("col slicing")
         subA = A[:, seeds::seeds_ptr]
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("edata ** 2")
-        subA.edata["p"] = subA.edata["w"] ** 2
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("row sum")
-        prob = subA.sum("p", axis=1)
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("all rows")
+        prob = subA.sum("w", axis=1)
         neighbors, probs_ptr = subA.all_rows()
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("sample")
-        sampleA, select_index = subA.collective_sampling(K, prob, probs_ptr, False)
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("div")
+        sampleA, select_index = subA.collective_sampling(K, prob, probs_ptr, neighbors, False)
         sampleA = sampleA.div("w", prob[select_index], axis=1)
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("col sum")
         out = sampleA.sum("w", axis=0)
-        torch.cuda.nvtx.range_pop()
-        torch.cuda.nvtx.range_push("div")
         sampleA = sampleA.div("w", out, axis=0)
-        torch.cuda.nvtx.range_pop()
         seeds, seeds_ptr = sampleA.all_nodes()
         ret.append(sampleA)
-    torch.cuda.nvtx.range_pop()
     return ret
 
 
 def benchmark(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
     batch_size = args.batching_batchsize
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)

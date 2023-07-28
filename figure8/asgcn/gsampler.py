@@ -37,15 +37,8 @@ def asgcn_sampler(
     ret = []
     for K in fanouts:
         subA = A[:, seeds]
-        subA.edata["w"] = subA.edata["w"] ** 2
         p = subA.sum("w", axis=1).sqrt()
-        # node_feats_u = features[subA.rows()]
-        # node_feats_v = features[subA.cols()]
-        # node_feats_u, node_feats_v = get_feature(features, A.rows(), A.cols(), use_uva)
-
-        node_feats_u = gather_pinned_tensor_rows(features, A.rows())
-        node_feats_v = gather_pinned_tensor_rows(features, A.cols())
-
+        node_feats_u, node_feats_v = get_feature(features, subA.rows(), subA.cols(), use_uva)
         h_u = node_feats_u @ W[:, 0]
         h_v = node_feats_v @ W[:, 1]
         h_v_sum = torch.sum(h_v)
@@ -111,7 +104,6 @@ def train(dataset, args):
     if features == None:
         features = torch.rand(g.num_nodes(), 128, dtype=torch.float32)
     features = features.to(device)
-    # features = features.pin_memory()
     W = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 2)).to("cuda")
     csc_indptr, csc_indices, edge_ids = g.adj_sparse("csc")
     weight = weight[edge_ids]

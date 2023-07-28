@@ -11,6 +11,20 @@ import csv
 from typing import List
 
 
+def get_feature(features, rows, cols, use_uva):
+    if use_uva:
+        node_feats_u = gather_pinned_tensor_rows(features, rows)
+        node_feats_v = gather_pinned_tensor_rows(features, cols)
+    else:
+        node_feats_u = features[rows]
+        node_feats_v = features[cols]
+    return node_feats_u, node_feats_v
+
+
+torch.fx.wrap("get_feature")
+torch.fx.wrap("gather_pinned_tensor_rows")
+
+
 def pass_sampler(
     A: gs.Matrix,
     seeds: torch.Tensor,
@@ -25,8 +39,7 @@ def pass_sampler(
     output_nodes = seeds
     for K in fanouts:
         subA = A[:, seeds]
-        u_feats = features[subA.rows()]
-        v_feats = features[subA.cols()]
+        u_feats, v_feats = get_feature(features, subA.rows(), subA.cols(), use_uva)
         att1 = gs.ops.u_mul_v(subA, u_feats @ W1, v_feats @ W1, gs._COO)
         att2 = gs.ops.u_mul_v(subA, u_feats @ W2, v_feats @ W2, gs._COO)
         att1 = torch.sum(att1, dim=1)
