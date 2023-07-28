@@ -1,115 +1,101 @@
-# 0.Introduction
+# Introduction
 
-This is the repo for artifact evaluation of gSampler.
-* reproduce ...
+This repository contains artifacts for evaluating [gSampler](https://github.com/gsampler9/gSampler.git). It includes code to reproduce Figures 7, 8, and 10 from the paper:
 
+- **Figure 7**: Time comparison between gSampler and baseline systems for 3 simple graph sampling algorithms.
+- **Figure 8**: Time comparison between gSampler and baseline systems for 4 complex graph sampling algorithms.
+- **Figure 10**: Ablation study of gSampler's optimizations on PD and PP graphs.
 
-... If ...
+# Dataset Preparation
 
-# 1.Data
+The data for this project should be stored in the `./dataset` directory and include the following datasets:
 
-The data used are stored in the directory `./dataset`
+1. friendster
+2. livejournal
+3. ogbn_papers100M
+4. ogbn_products
 
-```
-dataset
-├── friendster
-├── livejournal
-├── ogbn_papers100M
-└── ogbn_products
-```
+Download the `ogbn_products` and `ogbn_papers100M` datasets from [ogb](https://ogb.stanford.edu/), and the `livejournal` and `friendster` datasets from [SNAP](https://snap.stanford.edu/data/).
 
-for ..., 
+# Directory Structure
 
-for ..., ..
-
-# 2.Directory Structure
-
-The repo cotains four directory as follows:
+The repository contains four directories as follows:
 
 ```shell
 gsampler-artifact-evaluation
 ├── README.md
-├── figure10  #reproduce figure10
-├── figure7 #reproduce figure7
-├── figure8 #reproduce figure8
-└──  run.sh #reproduce figure8,10 table 8 together
+├── figure10  # reproduce figure10
+├── figure7   # reproduce figure7
+├── figure8   # reproduce figure8
+└── run.sh    # run all reproduce workload
 ```
 
-# 3. Setup
+# Setup
 
-If you are using AWS EC2 server we provided, then the environment is already build, just  run `conda activate gsampler-ae` and jump to step 4, otherwise, your should build the environment with the following instruction.
+If using our AWS EC2 server, simply run `conda activate gsampler-ae` and proceed to step 4. For other setups, follow these instructions:
 
-
+1. Git clone the repo:
+```shell
+git submodule update --init --recursive
+```
 
 ## 3.1 Build gSampler
 
-Please refer to [this guide](https://github.com/gsampler9/gSampler.git) to build gSampler.  In the following instruction, we assume that the user is in a conda environment named `gsampler-ae`, with dgl and gs library installed.
+Follow [this guide](https://github.com/gsampler9/gSampler.git) to build gSampler. Ensure you're in the `gsampler-ae` Conda environment with dgl and gs library installed.
 
-### 3.2 Install PyG [optional]
+## 3.2 Install PyG [optional]
 
-### 3.3 Install DGL [optional]
+Refer to https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html for installation.
 
-### 3.3 Install SkyWalker [optional]
+## 3.3 Install DGL [optional]
 
-### 3.4 Install Gunrock [optional]
+Refer to https://www.dgl.ai/pages/start.html for installation.
 
-### 3.5 Install CuGraph [optional]
+## 3.3 Install SkyWalker [optional]
 
+```shell
+cd figure7/skywalker/
+git checkout gsampler-baseline
+mkdir build
+cd build 
+cmake .. 
+make -j
+```
 
+## 3.4 Install Gunrock [optional]
 
-# 4. Execution
+```shell
+cd figure7/gunrock/
+git checkout gsampler-baseline
+mkdir build
+cd build 
+cmake .. 
+make sage
+```
 
-For convience, the Figure 8, Figure10, Table10 can be executed together. In the project root directory, just simply run 
+## 3.5 Install CuGraph [optional]
+
+Refer to https://github.com/rapidsai/cugraph for installation.
+
+# Execution
+
+To execute Figure 8, Figure 10, and Table 10 together, navigate to the project root directory and run the following command:
 
 ```
-# in the root directory
+cd ${workspace}
 bash run.sh
 ```
 
-This will generate the results in the subdirectories. Because Figure7 need to build another three systems, so it will be generated seperately.
+Results will be generated in the subdirectories. Note that Figure 7 requires building three additional systems, so it will be generated separately.
 
 ## 4.1 Build and Generate Figure 7
 
-For Figure 7, Please refer to [subdirectory README.md](https://github.com/gpzlx1/gsampler-artifact-evaluation/blob/main/figure7/README.md) to build and run the multiple baseline code.
+To build and run the multiple baseline code for Figure 7, you will need cuGraph, GunRock, SkyWalker, PyG, and DGL. Please install them first. Refer to [figure7](./figure7/README.md) for detailed instructions.
 
-## 4.2 Figure 8 
+## 4.2 Figure 8
 
-To generate figure8 independently: 
-
-```shell
-# in project root
-cd figure8/
-export epochs=6
-bash testbench.sh
-```
-
-Then four result.csv will be generated at `ladies/outputs/` `asgcn/outputs/`, `pass/outputs/`, `shadowkhop/outputs/`respectively.
-
-To generate the figures of the four sampling algorithm:
-
-```
-python plot.py
-```
-
-Then the .pdf format figure will be generated in `[algorithm]/outputs/` dir.
+To build and run the multiple baseline code for Figure 8, you will need DGL and PyG. Please install them first. Refer to [figure8](./figure8/README.md) for detailed instructions.
 
 ## 4.3 Figure 10
 
-Similar to figure8, To generate figure10 independently: 
-
-```shell
-# in project root
-cd figure10/
-export epochs=6
-bash testbench.sh
-```
-
-Then two result.csv will be generated at `ladies/outputs/` and `graphsage/outputs/`respectively.
-
-To generate the figures of the two ablation study :
-
-```
-python plot.py
-```
-
-Then the .pdf format figure will be generated in `[algorithm]/outputs/` dir.
+To build and run the multiple baseline code for Figure 10, you will need DGL. Please install them first. Refer to [figure10](./figure10/README.md) for detailed instructions.
