@@ -71,7 +71,7 @@ pip install -r requirements.txt
 
 ## 4.1 Figure 7
 
-For Figure 7, Please refer to this doc to execute the code.
+For Figure 7, Please refer to [this doc](https://github.com/gpzlx1/gsampler-artifact-evaluation/blob/main/figure7/README.md) to execute the code.
 
 ## 4.2 Figure 8
 
