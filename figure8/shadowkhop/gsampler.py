@@ -10,31 +10,17 @@ import argparse
 import csv
 
 
-def sample_w_o_relabel(P: gs.Matrix, fanouts, seeds, seeds_ptr):
-    graph = P._graph
-    output_node = seeds
-    blocks = []
-    for fanout in fanouts:
-        subg = graph._CAPI_fused_columnwise_slicing_sampling(seeds, fanout, False)
-        indptr, indices, eid = subg._CAPI_get_csc()
-        indices_ptr = indptr[seeds_ptr]
-        all_nodes, key, ptr = torch.ops.gs_ops.BatchConcat([seeds, subg._CAPI_get_coo_rows(False)], [seeds_ptr, indices_ptr])
-        seeds, seeds_ptr, key = torch.ops.gs_ops.BatchUniqueByKey2(all_nodes, ptr, key)
-    subg = graph._CAPI_batch_fusion_slicing(seeds, seeds_ptr, seeds, seeds_ptr)
-    indptr, indices, eid = subg._CAPI_get_csc()
-    indices_ptr = indptr[seeds_ptr]
-    unique_tensor, unique_tensor_ptr, indices, indices_ptr = torch.ops.gs_ops.BatchCSRRelabel(seeds, seeds_ptr, indices, indices_ptr)
-    seeds, seeds_ptr = unique_tensor, unique_tensor_ptr
-    seedst = torch.ops.gs_ops.SplitByOffset(seeds, seeds_ptr)
-    unit = torch.ops.gs_ops.SplitByOffset(unique_tensor, unique_tensor_ptr)
-    indicest = torch.ops.gs_ops.SplitByOffset(indices, indices_ptr)
-    blocks.insert(0, (seedst, unit, indicest))
-    input_node = seeds
-    return input_node, output_node, blocks
+def batch_shadowgnn_sampler(A, seeds, seeds_ptr, fanouts):
+    for k in fanouts:
+        subA = A[:, seeds::seeds_ptr]
+        sampleA = subA.individual_sampling(k, None, False)
+        seeds, seeds_ptr = sampleA.all_nodes()
+    subA = A[seeds::seeds_ptr, seeds::seeds_ptr]
+    return subA
 
 
 def benchmark(args, matrix, nid, fanouts, n_epoch, sampler):
-    print("####################################################{}".format(sampler.__name__))
+    print("####################################################")
     batch_size = args.batching_batchsize
     small_batch_size = args.batchsize
     num_batches = int((batch_size + small_batch_size - 1) / small_batch_size)
@@ -57,7 +43,7 @@ def benchmark(args, matrix, nid, fanouts, n_epoch, sampler):
                 num_batches = int((seeds.numel() + small_batch_size - 1) / small_batch_size)
                 seeds_ptr = torch.arange(num_batches + 1, dtype=torch.int64, device="cuda") * small_batch_size
                 seeds_ptr[-1] = seeds.numel()
-            input_nodes, output_nodes, blocks = sampler(matrix, fanouts, seeds, seeds_ptr)
+            input_nodes, output_nodes, blocks = sampler(matrix, seeds, seeds_ptr, fanouts)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
@@ -70,7 +56,7 @@ def benchmark(args, matrix, nid, fanouts, n_epoch, sampler):
         # system name, dataset, sampling time, mem peak
         log_info = ["gSampler", args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
         writer.writerow(log_info)
-    
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -90,12 +76,13 @@ def train(dataset, args):
     if use_uva and device == "cpu":
         csc_indptr = csc_indptr.pin_memory()
         csc_indices = csc_indices.pin_memory()
-    m = gs.Matrix(gs.Graph(False))
-    m._graph._CAPI_load_csc(csc_indptr, csc_indices)
-    print("Check load successfully:", m._graph._CAPI_metadata(), "\n")
+    m = gs.Matrix()
+    m.load_graph("CSC", [csc_indptr, csc_indices])
+    bm = gs.BatchMatrix()
+    bm.load_from_matrix(m, False)
 
     n_epoch = args.num_epoch
-    benchmark(args, m, train_nid, fanouts, n_epoch, sample_w_o_relabel)
+    benchmark(args, bm, train_nid, fanouts, n_epoch, batch_shadowgnn_sampler)
 
 
 if __name__ == "__main__":
