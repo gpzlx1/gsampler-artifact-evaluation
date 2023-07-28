@@ -47,7 +47,7 @@ gsampler-artifact-evaluation
 │   └── testbench.sh
 ├── requirements.txt
 ├── run.sh
-└── table8 #reproduce figure8
+└── table8 #reproduce table8
     ├── graphsage
     ├── ladies
     └── testbench.sh
