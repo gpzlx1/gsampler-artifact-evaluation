@@ -14,7 +14,7 @@ bash run_graphsage_dgl.sh
 
 echo "===test PyG==="
 cd ../PyG
-bash run_deepwalk_pyg.py
+bash run_deepwalk_pyg.sh
 bash run_graphsage_pyg.sh
 
 cd ..

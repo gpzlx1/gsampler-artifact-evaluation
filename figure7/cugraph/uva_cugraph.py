@@ -124,7 +124,7 @@ args = parser.parse_args()
 
 rmm.reinitialize(managed_memory=True)
 assert rmm.is_initialized()
-# cudf.set_allocator("managed")
+cudf.set_allocator("managed")
 
 start_ts = time.time()
 if args.dataset == "friendster":
@@ -143,7 +143,7 @@ if args.dataset == "friendster":
 elif args.dataset == "livejournal":
     print("load livejournal", flush=True)
     cdf = cudf.read_csv(
-        "/home/ubuntu/dataset/livejournal.csv",
+        "/home/ubuntu/dataset_old/livejournal.csv",
         skiprows=1,
         names=["src", "dst"],
         dtype=["int64", "int64"],
