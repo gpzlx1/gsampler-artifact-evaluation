@@ -135,7 +135,7 @@ def train(dataset, args):
     seeds = train_nid[rand_idx]
     compile_func = gs.jit.compile(func=pass_sampler,
                                   args=(m, seeds, fanouts, features, W1, W2,
-                                        W3, args.use_uva))
+                                        W3, args.use_uva), must_compact=args.use_uva)
 
     n_epoch = args.num_epoch
     benchmark(args, m, train_nid, fanouts, n_epoch, features, W1, W2, W3,
