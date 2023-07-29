@@ -130,7 +130,7 @@ start_ts = time.time()
 if args.dataset == "friendster":
     print("load friendster", flush=True)
     cdf = cudf.read_csv(
-        "/home/ubuntu/dataset/friendster.csv",
+        "/home/ubuntu/dataset_old/friendster.csv",
         skiprows=1,
         names=["src", "dst"],
         dtype=["int64", "int64"],

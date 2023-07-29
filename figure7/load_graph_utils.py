@@ -1,6 +1,7 @@
 from ogb.nodeproppred import DglNodePropPredDataset
 import torch
 import dgl
+import scipy.sparse as sp
 def load_ogbn_products():
     data = DglNodePropPredDataset(name="ogbn-products",root="/home/ubuntu/dataset")
     splitted_idx = data.get_idx_split()
