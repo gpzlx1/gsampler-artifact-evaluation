@@ -20,7 +20,8 @@ def ladies_sampler(A: gs.Matrix, seeds: torch.Tensor, fanouts: List):
     return input_node, output_node, ret
 
 
-def batch_ladies_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor, seeds_ptr: torch.Tensor):
+def batch_ladies_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor,
+                         seeds_ptr: torch.Tensor):
     ret = []
     for K in fanouts:
         subA = A[:, seeds::seeds_ptr]
@@ -33,6 +34,5 @@ def batch_ladies_sampler(A: gs.BatchMatrix, fanouts: List, seeds: torch.Tensor, 
         out = sampleA.sum("w", axis=0)
         sampleA = sampleA.div("w", out, axis=0)
         seeds, seeds_ptr = sampleA.all_nodes()
-        ret.append(sampleA.to_dgl_block())
-
+        ret.append(sampleA)
     return ret
