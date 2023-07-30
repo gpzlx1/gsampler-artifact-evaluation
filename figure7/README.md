@@ -121,8 +121,15 @@ bash run_graphsage_pyg.sh
 ```shell
 cd cuGraph
 bash run_cugraph.sh
-bash uva_cugraph.sh # because loading large graph to cugraph is very slow(12h+), this is an optional operation
 ```
+### Run cuGraph friendster 
+
+Because loading large graph to cugraph is very slow(20h+), this is an optional operation
+
+```shell
+bash uva_cugraph.sh 
+```
+
 # Ploting
 The result is in `figure7/outputs/result.csv`
 
