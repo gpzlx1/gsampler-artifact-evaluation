@@ -58,7 +58,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--dataset",
     default="livejournal",
-    choices=["producrs", "livejournal"],
+    choices=["products", "livejournal"],
     help="which dataset to load for training",
 )
 args = parser.parse_args()
