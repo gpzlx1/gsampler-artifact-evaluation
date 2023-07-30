@@ -6,7 +6,7 @@ skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_prod
 echo "====papers100m===="
 skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_papers100M/papers100m_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true --sage --n=512 --ngpu=1 --peritr=1 --batchnum=2358 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 echo "====friendster===="
-skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true --sage --n=512 --ngpu=1 --peritr=1 --batchnum=12816 1>>outputs/skywalker.log 2>>outputs/skywalker.err
+skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true --sage --n=512 --ngpu=1 --peritr=1 --batchnum=1282 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 
 
 
@@ -18,7 +18,7 @@ skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_prod
 echo "====papers100m===="
 skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_papers100M/papers100m_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true --rw=1 --k 1 --d 80 --n=1024 --ngpu=1  --batchnum=1179 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 echo "====friendster===="
-skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true  --rw=1 --k 1 --d 80 --n=1024 --ngpu=1 --batchnum=6408 1>>outputs/skywalker.log 2>>outputs/skywalker.err
+skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true  --rw=1 --k 1 --d 80 --n=1024 --ngpu=1 --batchnum=641 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 
 
 echo "====node2vec===="
@@ -31,7 +31,7 @@ skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_prod
 echo "====papers100m===="
 skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/ogbn_papers100M/papers100m_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true --node2vec --rw=1 --k 1 --d 80 --n=1024 --ngpu=1 --batchnum=1179 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 echo "====friendster===="
-skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true -node2vec  --rw=1 --k 1 --d 80 --n=1024 --ngpu=1  --batchnum=6408 1>>outputs/skywalker.log 2>>outputs/skywalker.err
+skywalker/build/skywalker --bias=0 --ol=1 --input /home/ubuntu/dataset/friendster/friendster_with_loop.gr --gmgraph=false --hmgraph=false --umgraph=true -node2vec  --rw=1 --k 1 --d 80 --n=1024 --ngpu=1  --batchnum=641 1>>outputs/skywalker.log 2>>outputs/skywalker.err
 
 grep -Eo 'avg epoch time:[0-9]+\.[0-9]+' outputs/skywalker.log | awk -F':' 'BEGIN{
     OFS=","; 
