@@ -27,6 +27,7 @@ gsampler-artifact-evaluation
 ├── figure10  # reproduce figure10
 ├── figure7   # reproduce figure7
 ├── figure8   # reproduce figure8
+├── clean.sh  # delete all results
 └── run.sh    # run all reproduce workload
 ```
 
@@ -83,6 +84,7 @@ To execute Figure 8, Figure 10, and Table 10 together, navigate to the project r
 
 ```
 cd ${workspace}
+bash clean.sh
 bash run.sh
 ```
 

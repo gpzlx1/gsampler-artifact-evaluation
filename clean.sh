@@ -1,0 +1,9 @@
+rm -rf figure7/outputs
+rm -rf figure8/outputs
+rm -rf figure8/asgcn/outputs
+rm -rf figure8/ladies/outputs
+rm -rf figure8/pass/outputs
+rm -rf figure8/shadowkhop/outputs
+rm -rf figure10/outputs
+rm -rf figure10/graphsage/outputs
+rm -rf figure10/ladies/outputs
