@@ -18,7 +18,9 @@ def node2vec_sampler(A, seeds, num_batch, walk_length, p, q):
 
 
 def benchmark_w_o_relabel(args, matrix, nid):
-    print('####################################################gSampler deepwalk')
+    print(
+        '####################################################gSampler deepwalk'
+    )
     # sampler = DeepWalkSampler(args.walk_length)
     print("train id size:", len(nid))
     batch_size = args.big_batch
@@ -96,17 +98,17 @@ def load(dataset, args):
     sample_list = []
     static_memory = torch.cuda.memory_allocated()
     train_nid = splitted_idx['train']
+    csc_indptr, csc_indices, edge_ids = g.adj_sparse('csc')
 
     if args.data_type == 'int':
-        g = g.int()
+        csc_indptr = csc_indptr.int()
+        csc_indices = csc_indices.int()
         train_nid = train_nid.int()
-        # print("convect to csc")
-        # g = g.formats("csc")
-        # print("after convert to csc")
+
     else:
-        g = g.long()
+        csc_indptr = csc_indptr.long()
+        csc_indices = csc_indices.long()
         train_nid = train_nid.long()
-    csc_indptr, csc_indices, edge_ids = g.adj_sparse('csc')
 
     if use_uva and device == 'cpu':
         csc_indptr = csc_indptr.pin_memory()
