@@ -101,7 +101,7 @@ def load(dataset, args):
     csc_indptr, csc_indices, edge_ids = g.adj_sparse('csc')
 
     if args.data_type == 'int':
-        csc_indptr = csc_indptr.int()
+        csc_indptr = csc_indptr.long()
         csc_indices = csc_indices.int()
         train_nid = train_nid.int()
 
@@ -122,6 +122,7 @@ def load(dataset, args):
     m._graph._CAPI_SortCSCIndices()
     bm = gs.matrix_api.BatchMatrix()
     bm.load_from_matrix(m, False)
+    bm.load_graph("CSC", [m.csc[0].cuda(), m.csc[1]])
     train_nid = train_nid.to('cuda')
 
     del g
