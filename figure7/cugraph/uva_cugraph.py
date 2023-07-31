@@ -130,7 +130,7 @@ start_ts = time.time()
 if args.dataset == "friendster":
     print("load friendster", flush=True)
     cdf = cudf.read_csv(
-        "/home/ubuntu/dataset_old/friendster.csv",
+        "/home/ubuntu/dataset/friendster/friendster.csv",
         skiprows=1,
         names=["src", "dst"],
         dtype=["int64", "int64"],
@@ -143,13 +143,13 @@ if args.dataset == "friendster":
 elif args.dataset == "livejournal":
     print("load livejournal", flush=True)
     cdf = cudf.read_csv(
-        "/home/ubuntu/dataset_old/livejournal.csv",
+        "/home/ubuntu/dataset/livejournal/livejournal.csv",
         skiprows=1,
         names=["src", "dst"],
         dtype=["int64", "int64"],
     )
     print("read csv done", flush=True)
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
+    train_id = torch.load("/home/ubuntu/dataset/livejournal/livejournal_trainid.pt")
     train_id = train_id.cpu().numpy()
     index = np.random.permutation(train_id.shape[0])
     permuted_nid = train_id[index]

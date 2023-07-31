@@ -10,21 +10,7 @@ sys.path.append("..")
 import argparse
 import tqdm
 import csv
-from load_graph_utils import load_ogbn_products, load_livejournal, load_100Mpapers
-
-
-def load_friendster():
-    train_id = torch.load("/home/ubuntu/dataset/friendster_trainid_10x.pt")
-    splitted_idx = dict()
-    splitted_idx['train'] = train_id
-    bin_path = "/home/ubuntu/dataset/friendster/friendster_adj.bin"
-    g_list, _ = dgl.load_graphs(bin_path)
-    g = g_list[0]
-    print("graph loaded")
-    print(g.formats())
-    # g = g.formats("csc")
-    g = g.long()
-    return g, None, None, None, splitted_idx
+from load_graph_utils import load_ogbn_products, load_livejournal, load_100Mpapers, load_friendster
 
 
 def node2vec_sampler(A, seeds, num_batch, walk_length, p, q):
@@ -32,7 +18,7 @@ def node2vec_sampler(A, seeds, num_batch, walk_length, p, q):
 
 
 def benchmark_w_o_relabel(args, matrix, nid):
-    print('####################################################DGL deepwalk')
+    print('####################################################gSampler deepwalk')
     # sampler = DeepWalkSampler(args.walk_length)
     print("train id size:", len(nid))
     batch_size = args.big_batch
@@ -131,6 +117,7 @@ def load(dataset, args):
 
     m = gs.matrix_api.Matrix()
     m.load_graph("CSC", [csc_indptr, csc_indices])
+    m._graph._CAPI_SortCSCIndices()
     bm = gs.matrix_api.BatchMatrix()
     bm.load_from_matrix(m, False)
     train_nid = train_nid.to('cuda')
