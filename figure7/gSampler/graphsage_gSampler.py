@@ -5,12 +5,11 @@ import gs
 from gs.utils import SeedGenerator
 import sys
 
+sys.path.append("..")
 import argparse
 import tqdm
 import csv
 from load_graph_utils import load_ogbn_products, load_livejournal, load_100Mpapers, load_friendster
-
-sys.path.append("..")
 
 
 def graphsage_sampler(A, seeds, seeds_ptr, fanouts):

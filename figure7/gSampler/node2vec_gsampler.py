@@ -83,9 +83,6 @@ def benchmark_w_o_relabel(args, matrix, nid):
     with open("../outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
         avg_sampling_time = np.mean(epoch_time[1:])
-        if args.dataset == 'friendster':
-            # to align with papers result
-            avg_sampling_time /= 10
         log_info = ["gSampler", args.dataset, avg_sampling_time, "node2vec"]
         writer.writerow(log_info)
         print(f"result writen to ../outputs/result.csv")

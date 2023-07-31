@@ -16,10 +16,10 @@ def load_ogbn_products():
     g = dgl.add_self_loop(g)
     return g, feat, labels, n_classes, splitted_idx
 def load_100Mpapers():
-    train_id = torch.load("/home/ubuntu/dataset/papers100m_train_id.pt")
+    train_id = torch.load("/home/ubuntu/dataset/ogbn_papers100M/papers100m_train_id.pt")
     splitted_idx = dict()
     splitted_idx['train']=train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn-papers100M_adj.npz")
+    coo_matrix = sp.load_npz("/home/ubuntu/dataset/ogbn_papers100M/ogbn-papers100M_adj.npz")
     g = dgl.from_scipy(coo_matrix)
     g = dgl.remove_self_loop(g)
     g = dgl.add_self_loop(g)
