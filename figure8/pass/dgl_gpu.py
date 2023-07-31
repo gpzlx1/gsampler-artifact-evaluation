@@ -26,6 +26,7 @@ def find_indices_in(a, b):
 
 
 class PASSSampler(dgl.dataloading.BlockSampler):
+
     def __init__(self, fanouts, W_1, W_2, sample_a, use_uva, features=None):
         super().__init__()
         self.fanouts = fanouts
@@ -50,17 +51,29 @@ class PASSSampler(dgl.dataloading.BlockSampler):
             else:
                 u_feats = self.features[nodes]
                 v_feats = self.features[seed_nodes]
-            u_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]), dtype=torch.float32, device=u_feats.device)
-            v_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]), dtype=torch.float32, device=v_feats.device)
+            u_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]),
+                                         dtype=torch.float32,
+                                         device=u_feats.device)
+            v_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]),
+                                         dtype=torch.float32,
+                                         device=v_feats.device)
             u_feats_all_w1[nodes] = u_feats @ self.W_1
             v_feats_all_w1[seed_nodes] = v_feats @ self.W_1
-            u_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]), dtype=torch.float32, device=u_feats.device)
-            v_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]), dtype=torch.float32, device=v_feats.device)
+            u_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]),
+                                         dtype=torch.float32,
+                                         device=u_feats.device)
+            v_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]),
+                                         dtype=torch.float32,
+                                         device=v_feats.device)
             u_feats_all_w2[nodes] = u_feats @ self.W_2
             v_feats_all_w2[seed_nodes] = v_feats @ self.W_2
 
-            att1 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w1, v_feats_all_w1), dim=1).unsqueeze(1)
-            att2 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w2, v_feats_all_w2), dim=1).unsqueeze(1)
+            att1 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w1,
+                                             v_feats_all_w1),
+                             dim=1).unsqueeze(1)
+            att2 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w2,
+                                             v_feats_all_w2),
+                             dim=1).unsqueeze(1)
             subg.ndata["v"] = subg.in_degrees()
             subg.apply_edges(lambda edges: {"w": 1 / edges.dst["v"]})
             att3 = subg.edata["w"].unsqueeze(1)
@@ -68,7 +81,11 @@ class PASSSampler(dgl.dataloading.BlockSampler):
             att = F.relu(att @ F.softmax(self.sample_a, dim=0))
             att = att + 10e-10 * torch.ones_like(att)
 
-            frontier = dgl.sampling.sample_neighbors(subg, seed_nodes, fanout, prob=att, replace=True)
+            frontier = dgl.sampling.sample_neighbors(subg,
+                                                     seed_nodes,
+                                                     fanout,
+                                                     prob=att,
+                                                     replace=True)
             block = dgl.to_block(frontier, seed_nodes)
             seed_nodes = block.srcdata[dgl.NID]
             blocks.insert(0, block)
@@ -77,6 +94,7 @@ class PASSSampler(dgl.dataloading.BlockSampler):
 
 
 class PASSSamplerRelabel(dgl.dataloading.BlockSampler):
+
     def __init__(self, fanouts, W_1, W_2, sample_a, use_uva, features=None):
         super().__init__()
         self.fanouts = fanouts
@@ -97,9 +115,11 @@ class PASSSamplerRelabel(dgl.dataloading.BlockSampler):
             global_nid = subg.ndata[dgl.NID][nodes]
 
             if seed_nodes.device == torch.device("cuda:0"):
-                local_seeds_nid = torch.ops.gs_ops.index_search(subg.ndata[dgl.NID], seed_nodes)
+                local_seeds_nid = torch.ops.gs_ops._CAPI_IndexSearch(
+                    subg.ndata[dgl.NID], seed_nodes)
             else:
-                local_seeds_nid = find_indices_in(seed_nodes.numpy(), subg.ndata[dgl.NID].numpy())
+                local_seeds_nid = find_indices_in(seed_nodes.numpy(),
+                                                  subg.ndata[dgl.NID].numpy())
                 local_seeds_nid = torch.from_numpy(local_seeds_nid)
 
             if self.use_uva:
@@ -108,17 +128,29 @@ class PASSSamplerRelabel(dgl.dataloading.BlockSampler):
             else:
                 u_feats = self.features[global_nid]
                 v_feats = self.features[seed_nodes]
-            u_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]), dtype=torch.float32, device=u_feats.device)
-            v_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]), dtype=torch.float32, device=v_feats.device)
+            u_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]),
+                                         dtype=torch.float32,
+                                         device=u_feats.device)
+            v_feats_all_w1 = torch.empty((subg.num_nodes(), self.W_1.shape[1]),
+                                         dtype=torch.float32,
+                                         device=v_feats.device)
             u_feats_all_w1[nodes] = u_feats @ self.W_1
             v_feats_all_w1[local_seeds_nid] = v_feats @ self.W_1
-            u_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]), dtype=torch.float32, device=u_feats.device)
-            v_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]), dtype=torch.float32, device=v_feats.device)
+            u_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]),
+                                         dtype=torch.float32,
+                                         device=u_feats.device)
+            v_feats_all_w2 = torch.empty((subg.num_nodes(), self.W_2.shape[1]),
+                                         dtype=torch.float32,
+                                         device=v_feats.device)
             u_feats_all_w2[nodes] = u_feats @ self.W_2
             v_feats_all_w2[local_seeds_nid] = v_feats @ self.W_2
 
-            att1 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w1, v_feats_all_w1), dim=1).unsqueeze(1)
-            att2 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w2, v_feats_all_w2), dim=1).unsqueeze(1)
+            att1 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w1,
+                                             v_feats_all_w1),
+                             dim=1).unsqueeze(1)
+            att2 = torch.sum(dgl.ops.u_mul_v(subg, u_feats_all_w2,
+                                             v_feats_all_w2),
+                             dim=1).unsqueeze(1)
             subg.ndata["v"] = subg.in_degrees()
             subg.apply_edges(lambda edges: {"w": 1 / edges.dst["v"]})
             att3 = subg.edata["w"].unsqueeze(1)
@@ -126,7 +158,11 @@ class PASSSamplerRelabel(dgl.dataloading.BlockSampler):
             att = F.relu(att @ F.softmax(self.sample_a, dim=0))
             att = att + 10e-10 * torch.ones_like(att)
 
-            frontier = dgl.sampling.sample_neighbors(subg, local_seeds_nid, fanout, prob=att, replace=True)
+            frontier = dgl.sampling.sample_neighbors(subg,
+                                                     local_seeds_nid,
+                                                     fanout,
+                                                     prob=att,
+                                                     replace=True)
             block = dgl.to_block(frontier, local_seeds_nid)
             seed_nodes = frontier.ndata[dgl.NID][block.srcdata[dgl.NID]]
             blocks.insert(0, block)
@@ -134,36 +170,56 @@ class PASSSamplerRelabel(dgl.dataloading.BlockSampler):
         return input_nodes, output_nodes, blocks
 
 
-def benchmark(args, graph, nid, fanouts, n_epoch, features, W1, W2, Wa, sampler_class):
-    print(f"####################################################DGL {sampler_class.__name__}")
-    sampler = sampler_class(fanouts, W_1=W1, W_2=W2, sample_a=Wa, use_uva=args.use_uva, features=features)
-    seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
+def benchmark(args, graph, nid, fanouts, n_epoch, features, W1, W2, Wa,
+              sampler_class):
+    print(
+        f"####################################################DGL {sampler_class.__name__}"
+    )
+    sampler = sampler_class(fanouts,
+                            W_1=W1,
+                            W_2=W2,
+                            sample_a=Wa,
+                            use_uva=args.use_uva,
+                            features=features)
+    seedloader = SeedGenerator(nid,
+                               batch_size=args.batchsize,
+                               shuffle=True,
+                               drop_last=False)
 
     epoch_time = []
     mem_list = []
     torch.cuda.synchronize()
     static_memory = torch.cuda.memory_allocated()
-    print("memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB")
+    print("memory allocated before training:",
+          static_memory / (1024 * 1024 * 1024), "GB")
     for epoch in range(n_epoch):
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.synchronize()
         start = time.time()
         for it, seeds in enumerate(tqdm.tqdm(seedloader)):
-            input_nodes, output_nodes, blocks = sampler.sample_blocks(graph, seeds)
+            input_nodes, output_nodes, blocks = sampler.sample_blocks(
+                graph, seeds)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
-        mem_list.append((torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024))
+        mem_list.append((torch.cuda.max_memory_allocated() - static_memory) /
+                        (1024 * 1024 * 1024))
 
-        print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
+        print(
+            "Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB"
+            .format(epoch, epoch_time[-1], mem_list[-1]))
 
     tag = "CPU" if (args.device == "cpu" and not args.use_uva) else "DGL"
     with open("outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
         # system name, dataset, sampling time, mem peak
-        log_info = [tag, args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        log_info = [
+            tag, args.dataset,
+            np.mean(epoch_time[1:]),
+            np.mean(mem_list[1:])
+        ]
         writer.writerow(log_info)
-    
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -180,8 +236,10 @@ def train(dataset, args):
     if features == None:
         features = torch.rand(g.num_nodes(), 128, dtype=torch.float32)
     features = features.to(device)
-    W1 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 64)).to(device)
-    W2 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 64)).to(device)
+    W1 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1],
+                                                   64)).to(device)
+    W2 = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1],
+                                                   64)).to(device)
     Wa = torch.FloatTensor([[10e-3], [10e-3], [10e-1]]).to(device)
     csc_indptr, csc_indices, edge_ids = g.adj_sparse("csc")
     if args.use_uva and device == "cpu":
@@ -192,28 +250,49 @@ def train(dataset, args):
 
     n_epoch = args.num_epoch
     if args.dataset == "livejournal" or args.dataset == "ogbn-products":
-        benchmark(args, g, train_nid, fanouts, n_epoch, features, W1, W2, Wa, PASSSampler)
+        benchmark(args, g, train_nid, fanouts, n_epoch, features, W1, W2, Wa,
+                  PASSSampler)
     else:
-        benchmark(args, g, train_nid, fanouts, n_epoch, features, W1, W2, Wa, PASSSamplerRelabel)
+        benchmark(args, g, train_nid, fanouts, n_epoch, features, W1, W2, Wa,
+                  PASSSamplerRelabel)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
-    parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
-    parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
-    parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")
-    parser.add_argument("--batchsize", type=int, default=64, help="batch size for training")
-    parser.add_argument("--samples", default="10,10", help="sample size for each layer")
+    parser.add_argument("--num_epoch",
+                        type=int,
+                        default=6,
+                        help="run how many epochs")
+    parser.add_argument("--device",
+                        default="cuda",
+                        choices=["cuda", "cpu"],
+                        help="Training model on gpu or cpu")
+    parser.add_argument(
+        "--use-uva",
+        type=bool,
+        default=False,
+        help="Wether to use UVA to sample graph and load feature")
+    parser.add_argument("--dataset",
+                        default="ogbn-products",
+                        help="which dataset to load for training")
+    parser.add_argument("--batchsize",
+                        type=int,
+                        default=64,
+                        help="batch size for training")
+    parser.add_argument("--samples",
+                        default="10,10",
+                        help="sample size for each layer")
     args = parser.parse_args()
     print(args)
 
     if args.dataset.startswith("ogbn"):
         dataset = load_graph.load_ogb(args.dataset, "/home/ubuntu/dataset")
     elif args.dataset == "livejournal":
-        dataset = load_graph.load_dglgraph("/home/ubuntu/dataset/livejournal/livejournal.bin")
+        dataset = load_graph.load_dglgraph(
+            "/home/ubuntu/dataset/livejournal/livejournal.bin")
     elif args.dataset == "friendster":
-        dataset = load_graph.load_dglgraph("/home/ubuntu/dataset/friendster/friendster.bin")
+        dataset = load_graph.load_dglgraph(
+            "/home/ubuntu/dataset/friendster/friendster.bin")
     else:
         raise NotImplementedError
     print(dataset[0])

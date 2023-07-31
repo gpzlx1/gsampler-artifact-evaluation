@@ -26,7 +26,14 @@ def find_indices_in(a, b):
 
 
 class ASGCNSampler(dgl.dataloading.BlockSampler):
-    def __init__(self, fanouts, replace=False, use_uva=False, W=None, eweight=None, node_feats=None):
+
+    def __init__(self,
+                 fanouts,
+                 replace=False,
+                 use_uva=False,
+                 W=None,
+                 eweight=None,
+                 node_feats=None):
         super().__init__()
         self.fanouts = fanouts
         self.replace = replace
@@ -43,10 +50,13 @@ class ASGCNSampler(dgl.dataloading.BlockSampler):
             subg = dgl.in_subgraph(g, seed_nodes)
             reversed_subg = dgl.reverse(subg, copy_edata=True)
             if self.use_uva:
-                sampled_e_weight = gather_pinned_tensor_rows(self.edge_weight, reversed_subg.edata[dgl.EID])
+                sampled_e_weight = gather_pinned_tensor_rows(
+                    self.edge_weight, reversed_subg.edata[dgl.EID])
             else:
-                sampled_e_weight = self.edge_weight[reversed_subg.edata[dgl.EID]]
-            p = torch.sqrt(dgl.ops.copy_e_sum(reversed_subg, sampled_e_weight**2))
+                sampled_e_weight = self.edge_weight[reversed_subg.edata[
+                    dgl.EID]]
+            p = torch.sqrt(
+                dgl.ops.copy_e_sum(reversed_subg, sampled_e_weight**2))
 
             edges = subg.edges()
             nodes = torch.unique(edges[0])
@@ -69,9 +79,15 @@ class ASGCNSampler(dgl.dataloading.BlockSampler):
             selected = nodes[idx]
             subg = dgl.out_subgraph(subg, selected)
 
-            q_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
-            h_u_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
-            h_v_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
+            q_allnodes = torch.empty(subg.num_nodes(),
+                                     dtype=torch.float32,
+                                     device=subg.device)
+            h_u_allnodes = torch.empty(subg.num_nodes(),
+                                       dtype=torch.float32,
+                                       device=subg.device)
+            h_v_allnodes = torch.empty(subg.num_nodes(),
+                                       dtype=torch.float32,
+                                       device=subg.device)
             q_allnodes[selected] = q[idx]
             h_u_allnodes[selected] = h_u[idx]
             h_v_allnodes[seed_nodes] = h_v
@@ -94,7 +110,14 @@ class ASGCNSampler(dgl.dataloading.BlockSampler):
 
 
 class ASGCNSamplerRelabel(dgl.dataloading.BlockSampler):
-    def __init__(self, fanouts, replace=False, use_uva=False, W=None, eweight=None, node_feats=None):
+
+    def __init__(self,
+                 fanouts,
+                 replace=False,
+                 use_uva=False,
+                 W=None,
+                 eweight=None,
+                 node_feats=None):
         super().__init__()
         self.fanouts = fanouts
         self.replace = replace
@@ -111,16 +134,20 @@ class ASGCNSamplerRelabel(dgl.dataloading.BlockSampler):
             subg = dgl.in_subgraph(g, seed_nodes, relabel_nodes=True)
             reversed_subg = dgl.reverse(subg, copy_edata=True)
             if self.use_uva:
-                sampled_e_weight = gather_pinned_tensor_rows(self.edge_weight, reversed_subg.edata[dgl.EID])
+                sampled_e_weight = gather_pinned_tensor_rows(
+                    self.edge_weight, reversed_subg.edata[dgl.EID])
             else:
-                sampled_e_weight = self.edge_weight[reversed_subg.edata[dgl.EID]]
-            p = torch.sqrt(dgl.ops.copy_e_sum(reversed_subg, sampled_e_weight**2))
+                sampled_e_weight = self.edge_weight[reversed_subg.edata[
+                    dgl.EID]]
+            p = torch.sqrt(
+                dgl.ops.copy_e_sum(reversed_subg, sampled_e_weight**2))
 
             edges = subg.edges()
             nodes = torch.unique(edges[0])
             num_pick = np.min([nodes.numel(), fanout])
             if self.use_uva:
-                node_feats_u = gather_pinned_tensor_rows(features, subg.ndata[dgl.NID][nodes])
+                node_feats_u = gather_pinned_tensor_rows(
+                    features, subg.ndata[dgl.NID][nodes])
                 node_feats_v = gather_pinned_tensor_rows(features, seed_nodes)
             else:
                 node_feats_u = features[subg.ndata[dgl.NID][nodes]]
@@ -134,18 +161,26 @@ class ASGCNSamplerRelabel(dgl.dataloading.BlockSampler):
             q = F.normalize(p[nodes] * attention * g_u, p=1.0, dim=0)
 
             if seed_nodes.device == torch.device("cuda:0"):
-                relabel_seeds_nodes = torch.ops.gs_ops.index_search(subg.ndata[dgl.NID], seed_nodes)
+                relabel_seeds_nodes = torch.ops.gs_ops._CAPI_IndexSearch(
+                    subg.ndata[dgl.NID], seed_nodes)
             else:
-                relabel_seeds_nodes = find_indices_in(seed_nodes.numpy(), subg.ndata[dgl.NID].numpy())
+                relabel_seeds_nodes = find_indices_in(
+                    seed_nodes.numpy(), subg.ndata[dgl.NID].numpy())
                 relabel_seeds_nodes = torch.from_numpy(relabel_seeds_nodes)
 
             idx = torch.multinomial(q, num_pick, replacement=False)
             selected = nodes[idx]
             subg = dgl.out_subgraph(subg, selected)
 
-            q_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
-            h_u_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
-            h_v_allnodes = torch.empty(subg.num_nodes(), dtype=torch.float32, device=subg.device)
+            q_allnodes = torch.empty(subg.num_nodes(),
+                                     dtype=torch.float32,
+                                     device=subg.device)
+            h_u_allnodes = torch.empty(subg.num_nodes(),
+                                       dtype=torch.float32,
+                                       device=subg.device)
+            h_v_allnodes = torch.empty(subg.num_nodes(),
+                                       dtype=torch.float32,
+                                       device=subg.device)
             q_allnodes[selected] = q[idx]
             h_u_allnodes[selected] = h_u[idx]
             h_v_allnodes[relabel_seeds_nodes] = h_v
@@ -167,36 +202,56 @@ class ASGCNSamplerRelabel(dgl.dataloading.BlockSampler):
         return input_nodes, output_nodes, blocks
 
 
-def benchmark(args, graph, nid, fanouts, n_epoch, adj_weight, features, W, sampler_class):
-    print(f"####################################################DGL {sampler_class.__name__}")
-    sampler = sampler_class(fanouts, replace=False, use_uva=args.use_uva, eweight=adj_weight, node_feats=features, W=W)
-    seedloader = SeedGenerator(nid, batch_size=args.batchsize, shuffle=True, drop_last=False)
+def benchmark(args, graph, nid, fanouts, n_epoch, adj_weight, features, W,
+              sampler_class):
+    print(
+        f"####################################################DGL {sampler_class.__name__}"
+    )
+    sampler = sampler_class(fanouts,
+                            replace=False,
+                            use_uva=args.use_uva,
+                            eweight=adj_weight,
+                            node_feats=features,
+                            W=W)
+    seedloader = SeedGenerator(nid,
+                               batch_size=args.batchsize,
+                               shuffle=True,
+                               drop_last=False)
 
     epoch_time = []
     mem_list = []
     torch.cuda.synchronize()
     static_memory = torch.cuda.memory_allocated()
-    print("memory allocated before training:", static_memory / (1024 * 1024 * 1024), "GB")
+    print("memory allocated before training:",
+          static_memory / (1024 * 1024 * 1024), "GB")
     for epoch in range(n_epoch):
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.synchronize()
         start = time.time()
         for it, seeds in enumerate(tqdm.tqdm(seedloader)):
-            input_nodes, output_nodes, blocks = sampler.sample_blocks(graph, seeds)
+            input_nodes, output_nodes, blocks = sampler.sample_blocks(
+                graph, seeds)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
-        mem_list.append((torch.cuda.max_memory_allocated() - static_memory) / (1024 * 1024 * 1024))
+        mem_list.append((torch.cuda.max_memory_allocated() - static_memory) /
+                        (1024 * 1024 * 1024))
 
-        print("Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB".format(epoch, epoch_time[-1], mem_list[-1]))
+        print(
+            "Epoch {:05d} | Epoch Sample Time {:.4f} s | GPU Mem Peak {:.4f} GB"
+            .format(epoch, epoch_time[-1], mem_list[-1]))
 
     tag = "CPU" if (args.device == "cpu" and not args.use_uva) else "DGL"
     with open("outputs/result.csv", "a") as f:
         writer = csv.writer(f, lineterminator="\n")
         # system name, dataset, sampling time, mem peak
-        log_info = [tag, args.dataset, np.mean(epoch_time[1:]), np.mean(mem_list[1:])]
+        log_info = [
+            tag, args.dataset,
+            np.mean(epoch_time[1:]),
+            np.mean(mem_list[1:])
+        ]
         writer.writerow(log_info)
-    
+
     # use the first epoch to warm up
     print("Average epoch sampling time:", np.mean(epoch_time[1:]))
     print("Average epoch gpu mem peak:", np.mean(mem_list[1:]))
@@ -215,7 +270,8 @@ def train(dataset, args):
     if features == None:
         features = torch.rand(g.num_nodes(), 128, dtype=torch.float32)
     features = features.to(device)
-    W = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1], 2)).to(device)
+    W = torch.nn.init.xavier_normal_(torch.Tensor(features.shape[1],
+                                                  2)).to(device)
     csc_indptr, csc_indices, edge_ids = g.adj_sparse("csc")
     weight = weight[edge_ids]
     if args.use_uva and device == "cpu":
@@ -226,28 +282,49 @@ def train(dataset, args):
 
     n_epoch = args.num_epoch
     if args.dataset != "ogbn-papers100M":
-        benchmark(args, g, train_nid, fanouts, n_epoch, weight, features, W, ASGCNSampler)
+        benchmark(args, g, train_nid, fanouts, n_epoch, weight, features, W,
+                  ASGCNSampler)
     else:
-        benchmark(args, g, train_nid, fanouts, n_epoch, weight, features, W, ASGCNSamplerRelabel)
+        benchmark(args, g, train_nid, fanouts, n_epoch, weight, features, W,
+                  ASGCNSamplerRelabel)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_epoch", type=int, default=6, help="run how many epochs")
-    parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Training model on gpu or cpu")
-    parser.add_argument("--use-uva", type=bool, default=False, help="Wether to use UVA to sample graph and load feature")
-    parser.add_argument("--dataset", default="ogbn-products", help="which dataset to load for training")
-    parser.add_argument("--batchsize", type=int, default=256, help="batch size for training")
-    parser.add_argument("--samples", default="512,512", help="sample size for each layer")
+    parser.add_argument("--num_epoch",
+                        type=int,
+                        default=6,
+                        help="run how many epochs")
+    parser.add_argument("--device",
+                        default="cuda",
+                        choices=["cuda", "cpu"],
+                        help="Training model on gpu or cpu")
+    parser.add_argument(
+        "--use-uva",
+        type=bool,
+        default=False,
+        help="Wether to use UVA to sample graph and load feature")
+    parser.add_argument("--dataset",
+                        default="ogbn-products",
+                        help="which dataset to load for training")
+    parser.add_argument("--batchsize",
+                        type=int,
+                        default=256,
+                        help="batch size for training")
+    parser.add_argument("--samples",
+                        default="512,512",
+                        help="sample size for each layer")
     args = parser.parse_args()
     print(args)
 
     if args.dataset.startswith("ogbn"):
         dataset = load_graph.load_ogb(args.dataset, "/home/ubuntu/dataset")
     elif args.dataset == "livejournal":
-        dataset = load_graph.load_dglgraph("/home/ubuntu/dataset/livejournal/livejournal.bin")
+        dataset = load_graph.load_dglgraph(
+            "/home/ubuntu/dataset/livejournal/livejournal.bin")
     elif args.dataset == "friendster":
-        dataset = load_graph.load_dglgraph("/home/ubuntu/dataset/friendster/friendster.bin")
+        dataset = load_graph.load_dglgraph(
+            "/home/ubuntu/dataset/friendster/friendster.bin")
     else:
         raise NotImplementedError
     print(dataset[0])
