@@ -1,5 +1,7 @@
 mkdir -p outputs
 
+conda activate gsampler-ae
+
 cd graphsage/
 bash testbench.sh
 
