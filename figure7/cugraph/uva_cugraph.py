@@ -1,3 +1,4 @@
+# %%
 import rmm
 import cugraph
 import cudf
@@ -7,7 +8,8 @@ import torch
 import argparse
 from tqdm import tqdm
 import csv
-
+import pandas as pd
+import dask_cudf
 def time_graphsage(graph, seeds, batchsize, fanout, batchnum):
     """
     Test cost time of random walk
@@ -80,7 +82,7 @@ def time_node2vec(graph, seeds, batchsize, walk_length, batchnum):
     """
     Test cost time of random walk
     """
-    runs = 6
+    runs = 3
     time_list = []
     for i in range(runs):
         epoch_time = 0
@@ -113,74 +115,82 @@ def time_node2vec(graph, seeds, batchsize, walk_length, batchnum):
         print(f"result writen to ../outputs/result.csv")
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--dataset",
-    default="livejournal",
-    choices=["papers100m", "friendster", "livejournal"],
-    help="which dataset to load for training",
-)
-args = parser.parse_args()
+# parser = argparse.ArgumentParser()
+# parser.add_argument(
+#     "--dataset",
+#     default="livejournal",
+#     choices=["papers100m", "friendster", "livejournal"],
+#     help="which dataset to load for training",
+# )
+# args = parser.parse_args()
 
+
+
+
+# %%
 rmm.reinitialize(managed_memory=True)
 assert rmm.is_initialized()
-cudf.set_allocator("managed")
+# cudf.set_allocator("managed")
 
 start_ts = time.time()
-if args.dataset == "friendster":
-    print("load friendster", flush=True)
-    cdf = cudf.read_csv(
-        "/home/ubuntu/dataset/friendster/friendster.csv",
-        skiprows=1,
-        names=["src", "dst"],
-        dtype=["int64", "int64"],
-    )
-    print("read csv done", flush=True)
-    train_id = torch.load("/home/ubuntu/dataset/friendster/friendster_trainid.pt")
-    train_id = train_id.cpu().numpy()
-    index = np.random.permutation(train_id.shape[0])
-    permuted_nid = train_id[index]
-elif args.dataset == "livejournal":
-    print("load livejournal", flush=True)
-    cdf = cudf.read_csv(
-        "/home/ubuntu/dataset/livejournal/livejournal.csv",
-        skiprows=1,
-        names=["src", "dst"],
-        dtype=["int64", "int64"],
-    )
-    print("read csv done", flush=True)
-    train_id = torch.load("/home/ubuntu/dataset/livejournal/livejournal_trainid.pt")
-    train_id = train_id.cpu().numpy()
-    index = np.random.permutation(train_id.shape[0])
-    permuted_nid = train_id[index]
-else:
-    raise NotImplementedError
+
+# %%
+print("load friendster", flush=True)
+cdf = dask_cudf.read_csv(
+    "/home/ubuntu/dataset/friendster/com-friendster.ungraph.txt",
+    # skiprows=1,
+    sep='\t',
+    names=["src", "dst"],
+    dtype={'src': np.int64, 'dst': np.int64},
+)
+print("read csv done", flush=True)
+# %%
+cdf = cdf.compute()
+
+# %%
 print("csv and train_id loaded", flush=True)
 
 G = cugraph.MultiGraph(directed=True)
+print(f"cdf:{cdf}")
+print(f"type(cdf):{type(cdf)}")
 G.from_cudf_edgelist(cdf, source="src", destination="dst", renumber=True)
 print("graph created", flush=True)
 end_ts = time.time()
-print("Total Time on plain UVM  approach: " + str(end_ts - start_ts) + " s", flush=True)
 
-permuted_nid = cudf.Series(permuted_nid)
+# %%
+print(cdf.shape)
+
+# %%
+train_id = G.edges()['dst'][1:656169]
+
+# %%
+# train_id2 = G.edges()['src'][1:656169]
+
+# %%
+train_id.shape
+
+# %%
+print("Total Time on plain UVM  approach: " + str(end_ts - start_ts) + " s", flush=True)
 
 print("Timing graphsage", flush=True)
 batchsize = 512
 fanout = [25, 10]
-batchnum = int((permuted_nid.shape[0] + batchsize - 1) / batchsize)
-time_graphsage(G, permuted_nid, batchsize, fanout, batchnum)
+batchnum = int((train_id.shape[0] + batchsize - 1) / batchsize)
+time_graphsage(G, train_id, batchsize, fanout, batchnum)
 
 
-print("Timing deepmwalk", flush=True)
-batchsize = 1024
-walk_len = 80
-batchnum = int((permuted_nid.shape[0] + batchsize - 1) / batchsize)
-time_deepwalk(G, permuted_nid, batchsize, walk_len, batchnum)
-
+# print("Timing deepmwalk", flush=True)
+# batchsize = 1024
+# walk_len = 80
+# batchnum = int((train_id.shape[0] + batchsize - 1) / batchsize)
+# time_deepwalk(G, train_id, batchsize, walk_len, batchnum)
 
 print("Timing node2vec", flush=True)
 batchsize = 1024
 walk_len = 80
-batchnum = int((permuted_nid.shape[0] + batchsize - 1) / batchsize)
-time_node2vec(G, permuted_nid, batchsize, walk_len, batchnum)
+batchnum = int((train_id.shape[0] + batchsize - 1) / batchsize)
+time_node2vec(G, train_id, batchsize, walk_len, batchnum)
+
+# %%
+
+

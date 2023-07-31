@@ -14,10 +14,9 @@ echo "run figure8"
 cd ../figure8
 bash testbench.sh
 
-# cd ../figure10
-# bash testbench.sh
+echo "run figure10"
+cd ../figure10
+bash testbench.sh
 
-# cd ../table8
-# bash testbench.sh
 
 
