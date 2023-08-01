@@ -14,31 +14,6 @@ import sys
 sys.path.append("..") 
 from load_graph_utils import load_ogbn_products,load_livejournal
 
-def load_ogb(name):
-    data = DglNodePropPredDataset(name=name,root="/home/ubuntu/dataset/")
-    splitted_idx = data.get_idx_split()
-    g, labels = data[0]
-    feat = g.ndata["feat"]
-    labels = labels[:, 0]
-    n_classes = len(torch.unique(labels[torch.logical_not(torch.isnan(labels))]))
-    g.ndata.clear()
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    return g, feat, labels, n_classes, splitted_idx
-
-
-def load_livejournal():
-    train_id = torch.load("/home/ubuntu/dataset/livejournal_trainid.pt")
-    splitted_idx = dict()
-    splitted_idx["train"] = train_id
-    coo_matrix = sp.load_npz("/home/ubuntu/dataset/livejournal_adj.npz")
-    g = dgl.from_scipy(coo_matrix)
-    g = dgl.remove_self_loop(g)
-    g = dgl.add_self_loop(g)
-    g = g.long()
-    return g, None, None, None, splitted_idx
-
-
 def time_randomwalk(graph, seeds, batchsize, walk_length, batchnum):
     """
     Test cost time of random walk
