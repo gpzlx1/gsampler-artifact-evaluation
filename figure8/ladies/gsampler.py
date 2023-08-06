@@ -65,8 +65,7 @@ def benchmark(args, matrix, nid, fanouts, n_epoch, sampler):
                                          dtype=torch.int64,
                                          device="cuda") * small_batch_size
                 seeds_ptr[-1] = seeds.numel()
-            input_nodes, output_nodes, blocks = compile_func(
-                matrix, fanouts, seeds, seeds_ptr)
+            outputs = compile_func(matrix, fanouts, seeds, seeds_ptr)
 
         torch.cuda.synchronize()
         epoch_time.append(time.time() - start)
