@@ -65,6 +65,8 @@ gsampler-artifact-evaluation
 
 # Setup
 
+To ease the burden of setting up a software-hardware environment, we provided reviewers with a direct instance. For login instructions, please refer to comments `A2` and `A3` in sosp23ae.
+
 If using our AWS EC2 server, simply run `conda activate gsampler-ae` and proceed to step 4. For other setups, follow these instructions:
 
 1. Git clone the repo:
