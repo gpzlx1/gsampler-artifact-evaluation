@@ -7,7 +7,7 @@ This repository contains artifacts for evaluating [gSampler](https://github.com/
 - **Figure 10**: Ablation study of gSampler's optimizations on PD and PP graphs.
 
 
-To replicate the paper's findings, we recommend using the `p3.x16large` instance equipped with an NVIDIA V100 GPU, 64 vCPUs, and 480GB memory. Running all scripts may take approximately 6-8 hours.
+To replicate the paper's findings, we recommend using the `p3.x16large` instance equipped with NVIDIA V100 GPUs, 64 vCPUs, and 480GB memory. Running all scripts may take approximately 6-8 hours.
 
 Ensure your hardware has at least 256GB memory for preprocessing the two large-scale graphs, `ogbn_papers100M` and `friendster`, in CSC format.
 
