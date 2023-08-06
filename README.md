@@ -9,9 +9,9 @@ This repository contains artifacts for evaluating [gSampler](https://github.com/
 
 To replicate the paper's findings, we recommend using the `p3.x16large` instance equipped with NVIDIA V100 GPUs, 64 vCPUs, and 480GB memory. Running all scripts may take approximately 6-8 hours.
 
-Ensure your hardware has at least 256GB memory for preprocessing the two large-scale graphs, `ogbn_papers100M` and `friendster`, in CSC format.
+If you leverage your own hardware to reprodce the results, please ensure your hardware has at least 256GB memory for preprocessing the two large-scale graphs, `ogbn_papers100M` and `friendster`, in CSC format.
 
-To reproduce the paper's results, use the latest version from the main branch of the repository and the source code available at https://github.com/gsampler9/gSampler.
+To reproduce the paper's results, just use the latest version from the main branch of the repository and the source code available at https://github.com/gsampler9/gSampler.
 
 # Dataset Preparation
 
