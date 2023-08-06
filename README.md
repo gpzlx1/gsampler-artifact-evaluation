@@ -1,10 +1,17 @@
 # Introduction
 
-This repository contains artifacts for evaluating [gSampler](https://github.com/gsampler9/gSampler.git). It includes code to reproduce Figures 7, 8, and 10 from the paper:
+This repository contains artifacts for evaluating [gSampler](https://github.com/gsampler9/gSampler). It includes code to reproduce Figures 7, 8, and 10 from the paper:
 
 - **Figure 7**: Time comparison between gSampler and baseline systems for 3 simple graph sampling algorithms.
 - **Figure 8**: Time comparison between gSampler and baseline systems for 4 complex graph sampling algorithms.
 - **Figure 10**: Ablation study of gSampler's optimizations on PD and PP graphs.
+
+
+To replicate the paper's findings, use the `p3.x16large` instance equipped with an NVIDIA V100 GPU, 64 vCPUs, and 480GB memory. Running all scripts may take approximately 6-8 hours.
+
+Ensure your hardware has at least 256GB memory for preprocessing the two large-scale graphs, `ogbn_papers100M` and `friendster`, in CSC format.
+
+To reproduce the paper's results, use the latest version from the main branch of the repository and the most recent version of the source code available at https://github.com/gsampler9/gSampler.
 
 # Dataset Preparation
 
@@ -17,6 +24,29 @@ The data for this project should be stored in the `./dataset` directory and incl
 
 Download the `ogbn_products` and `ogbn_papers100M` datasets from [ogb](https://ogb.stanford.edu/), and the `livejournal` and `friendster` datasets from [SNAP](https://snap.stanford.edu/data/).
 
+## For Other Datasets
+
+To handle other datasets, follow these steps:
+
+1. Prepare the graph in the CSC format.
+2. Load the dataset using the `m.load_graph` API.
+
+```python
+# Prepare the graph in CSC format
+csc_indptr, csc_indices = load_graph(...)
+
+# Load the graph into GPU memory
+m = gs.Matrix()
+m.load_graph("CSC", [csc_indptr.cuda(), csc_indices.cuda()])
+
+# For large-scale graphs using Unified Virtual Addressing (UVA)
+m.load_graph("CSC", [csc_indptr.pin_memory(), csc_indices.pin_memory()])
+
+# To utilize super-batching, convert Matrix to BatchMatrix
+bm = gs.BatchMatrix()
+bm.load_from_matrix(m)
+```
+
 # Directory Structure
 
 The repository contains four directories as follows:
@@ -24,6 +54,8 @@ The repository contains four directories as follows:
 ```shell
 gsampler-artifact-evaluation
 ├── README.md
+├── fig_examples # Example output figures.
+├── examples  # E2E demo with DGL
 ├── figure10  # reproduce figure10
 ├── figure7   # reproduce figure7
 ├── figure8   # reproduce figure8
