@@ -11,7 +11,7 @@ To replicate the paper's findings, use the `p3.x16large` instance equipped with 
 
 Ensure your hardware has at least 256GB memory for preprocessing the two large-scale graphs, `ogbn_papers100M` and `friendster`, in CSC format.
 
-To reproduce the paper's results, use the latest version from the main branch of the repository and the most recent version of the source code available at https://github.com/gsampler9/gSampler.
+To reproduce the paper's results, use the latest version from the main branch of the repository and the source code available at https://github.com/gsampler9/gSampler.
 
 # Dataset Preparation
 
