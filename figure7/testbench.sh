@@ -1,3 +1,6 @@
+# mkdir outputs
+mkdir -p outputs
+
 source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
 conda activate gsampler-ae
 echo "===test gSampler==="
